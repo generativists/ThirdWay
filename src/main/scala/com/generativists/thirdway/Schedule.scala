@@ -9,7 +9,7 @@ class Schedule[Env] (
   val rng: RNG
 ) {
   val queue = mutable.PriorityQueue[Event[Env]]()(Ordering[Event[Env]].reverse)
-  
+
   val shufflerTmp = mutable.ArrayBuffer.empty[Event[Env]]
 
   def length = queue.length
