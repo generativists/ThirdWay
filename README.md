@@ -1,5 +1,7 @@
 # ThirdWay
 
+[![Build Status](https://travis-ci.org/jbn/ThirdWay.svg?branch=master)](https://travis-ci.org/jbn/ThirdWay)
+
 `ThirdWay` is a Scala library for building Agent-Based Models (ABMs). 
 
 It started off as a 
