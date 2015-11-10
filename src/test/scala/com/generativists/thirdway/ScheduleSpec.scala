@@ -251,6 +251,16 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       val _ = schedule.repeating(new Appender(0.0, 1), 0.0, -1.0, 0)
     }
   }
+
+  it should "raise an IllegalArgumentException if run after exhausted" in {
+    val testEnv = ListBuffer.empty[(Double, Int)]
+    schedule.onceIn(new NoOp[MyEnv], 1.0, 0)
+    schedule.run(testEnv)
+
+    an [IllegalArgumentException] should be thrownBy {
+      val _ = schedule.run(testEnv)
+    }
+  }
 }
 
 class SequencedActivitiesSpec extends FlatSpec with Matchers {
