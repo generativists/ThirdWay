@@ -69,7 +69,7 @@ case class ShuffledActivities[Env](
 
   /** @note This method uses the ``scheduler`s RNG as a source. */
   def apply(env: Env, schedule: Schedule[Env]): Unit = {
-    shuffleInPlace(schedule.rng, activities)
+    Util.shuffleInPlace(schedule.rng, activities)
     activities foreach { activity => activity(env, schedule) }
   }
 

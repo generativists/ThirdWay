@@ -79,7 +79,7 @@ class Schedule[Env] (
       continue = !isEmpty && matcher.compare(queue.head) == 0
     }
 
-    shuffleInPlace(rng, shufflerTmp)
+    Util.shuffleInPlace(rng, shufflerTmp)
 
     // Run.
     shufflerTmp foreach { _.activity(env, this) }
