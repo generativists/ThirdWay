@@ -1,5 +1,7 @@
 package com.generativists.thirdway
 
+import com.generativists.thirdway.Implicits._
+
 import org.apache.commons.math3.random.MersenneTwister
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}

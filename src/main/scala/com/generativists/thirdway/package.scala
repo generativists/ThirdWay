@@ -1,20 +1,11 @@
 package com.generativists
 
 import org.apache.commons.math3.random.RandomGenerator
-import scala.language.implicitConversions
 import scala.collection.mutable
 
 
 package object thirdway {
   type RNG = RandomGenerator
-
-  implicit def f2Activity[E, R](f: (E, Schedule[E]) => R): Activity[E] = {
-    new Activity[E] {
-      def apply(env: E, schedule: Schedule[E]): Unit = {
-        val _ = f(env, schedule)
-      }
-    }
-  }
 
   /** Shuffles a sequence in-place.
     *
