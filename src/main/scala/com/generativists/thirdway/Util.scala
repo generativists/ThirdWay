@@ -1,5 +1,7 @@
 package com.generativists.thirdway
 
+import java.io.{ObjectInputStream, ByteArrayInputStream, ObjectOutputStream, ByteArrayOutputStream}
+
 import scala.collection.mutable
 
 object Util {
@@ -16,5 +18,15 @@ object Util {
       items(i) = items(j)
       items(j) = tmp
     }
+  }
+
+  /** Clones a object via serialization. */
+  def serializingClone[T](obj: T): T = {
+    val byteStream = new ByteArrayOutputStream()
+    new ObjectOutputStream(byteStream).writeObject(obj)
+
+    new ObjectInputStream(
+      new ByteArrayInputStream(byteStream.toByteArray())
+    ).readObject().asInstanceOf[T]
   }
 }
