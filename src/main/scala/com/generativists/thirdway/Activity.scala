@@ -2,7 +2,7 @@ package com.generativists.thirdway
 
 import scala.collection.mutable
 
-trait Activity[Env] {
+trait Activity[Env] extends Serializable {
   /** Run this activity over some environment and given a schedule.*/
   def apply(env: Env, schedule: Schedule[Env]): Unit
 }

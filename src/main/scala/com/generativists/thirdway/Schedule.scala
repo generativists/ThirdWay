@@ -7,7 +7,7 @@ class Schedule[Env] (
   var time: Double,
   var steps: Long,
   val rng: RNG
-) {
+) extends Serializable {
   val queue = mutable.PriorityQueue[Event[Env]]()(Ordering[Event[Env]].reverse)
 
   val shufflerTmp = mutable.ArrayBuffer.empty[Event[Env]]

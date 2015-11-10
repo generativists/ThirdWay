@@ -5,7 +5,7 @@ case class Event[Env] (
   val time: Double,
   val order: Int,
   val activity: Activity[Env]
-) extends Ordered[Event[Env]] {
+) extends Ordered[Event[Env]] with Serializable {
 
   /** Defines the order over (time, order).
     *
