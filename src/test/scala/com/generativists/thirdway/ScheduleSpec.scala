@@ -182,10 +182,16 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   }
 
   it should "take functions given the implicit f2Activity conversion" in {
+    val testEnv = ListBuffer.empty[(Double, Int)]
+
     schedule.enqueue(
       0.0, 0,
       (e: MyEnv, s: Schedule[MyEnv]) => e.append(2.0 -> 1)
     ) shouldBe true
+
+    schedule.run(testEnv)
+
+    testEnv shouldEqual ListBuffer(2.0 -> 1)
   }
 
   it should "allow an event to be scheduled once at a specific time" in {
