@@ -172,6 +172,14 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
   }
 
+  it should "allow peeking" in {
+    schedule.enqueue(1.0, 1, new Appender(1, 1))
+    schedule.enqueue(1.0, 0, new Appender(1, 0))
+
+    schedule.peek.time shouldEqual 1.0
+    schedule.peek.order shouldEqual 0
+  }
+
   it should "execute activities with the same time ordered by order" in {
     schedule.enqueue(1.0, 1, new Appender(1, 1))
     schedule.enqueue(1.0, 0, new Appender(1, 0))
@@ -254,12 +262,18 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.onceIn(2.0, 2) { (e, s) => e.append((s.time, 2)) }
     schedule.runUntilExhausted(testEnv)
 
-    testEnv shouldEqual ListBuffer(0.0 -> 1, 1.0 -> 2)
+    testEnv shouldEqual ListBuffer(1.0 -> 1, 2.0 -> 2)
 
     schedule.reset()
+    testEnv.clear()
+    schedule.repeating(1.0, 1.0, 1) { (e, s) => e.append((s.time, 1)) }
+    schedule.time = Schedule.Epoch
+    schedule.runNSteps(testEnv, 3)
 
-
-    //schedule.run(testEnv)
+    //schedule.runNSteps(testEnv, 5)
+    testEnv shouldEqual ListBuffer(
+      1.0 -> 1, 2.0 -> 1, 3.0 -> 1
+    )
   }
 
   it should "allow an event to be scheduled once at a specific time" in {
@@ -303,10 +317,10 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.step shouldEqual 7
   }
 
-  it should "not change the time on run if it is not BeforeSimulation" in {
+  it should "not zero-inc the time on run if it is not BeforeSimulation" in {
     val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.onceIn(1.0, 0) { (e, s) => s.time shouldEqual 10.0}
     schedule.time = 10.0
+    schedule.onceIn(1.0, 0) { (e, s) => s.time shouldEqual 11.0}
     schedule.runUntilExhausted(testEnv)
   }
 
@@ -368,6 +382,31 @@ class SequencedActivitiesSpec extends FlatSpec with Matchers {
     val env = ListBuffer.empty[Int]
     schedule.runUntilExhausted(env)
     env shouldEqual ListBuffer(5, 2, 1, 9)
+  }
+}
+
+class RepeatingActivitySpec extends FlatSpec with Matchers {
+  type MyEnv   = ListBuffer[Int]
+  val rng      = new MersenneTwister()
+  val schedule = Schedule[MyEnv](rng)
+
+  class Appender(i: Int) extends Activity[MyEnv] {
+    def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
+      env.append(i)
+    }
+  }
+
+  "RepeatingActivity" should "run an underlying activity then reschedule" in {
+    schedule.reset()
+    schedule.time = 1.0
+
+    val env = ListBuffer.empty[Int]
+    val repeater = RepeatingActivity(new Appender(1), 1.0, 3)
+    repeater(env, schedule)
+
+    val items = schedule.dequeueAll()
+    items.head.time shouldEqual 2.0
+    items.head.order shouldEqual 3
   }
 }
 

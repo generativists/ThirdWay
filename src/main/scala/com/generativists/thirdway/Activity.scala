@@ -48,7 +48,7 @@ case class RepeatingActivity[Env](
   def apply(env: Env, schedule: Schedule[Env]): Unit = {
     if (!stopped) {
       activity(env, schedule)
-      val _ = schedule.onceIn(this, interval, order)
+      schedule.onceIn(this, interval, order)
     }
   }
 }

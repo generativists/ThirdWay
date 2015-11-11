@@ -18,6 +18,8 @@ class Schedule[Env] (
     Ordering[Event[Env]].reverse
   )
 
+  def peek = queue.head
+
   /** The `runOneStep` method collects `Event`s that should run next into a
     * collection. Rather than reallocating that collection each time,
     * `Schedule` allocates it once in `shuffleTmp`.  Then, the `Schedule`
@@ -128,7 +130,9 @@ class Schedule[Env] (
   ): Stoppable[Env] = {
     require(interval > 0)
     val repeatingActivity = RepeatingActivity(activity, interval, order)
+
     enqueue(startAt, order, repeatingActivity)
+
     repeatingActivity
   }
 
@@ -143,6 +147,8 @@ class Schedule[Env] (
 
 
   /** Runs the schedule one step forward over some environment.
+    *
+    * Time and step are set **prior** to each activity's execution.
     *
     * A step corresponds to a time with scheduled activities. For example,
     * given two activities at 1.0, one at 3.0, and one at 9.0, the
@@ -162,7 +168,9 @@ class Schedule[Env] (
       return false
     }
 
-    val runTime = queue.head.time
+    // Increment the time and step FIRST.
+    time = queue.head.time
+    step += 1
     var currentOrder = queue.head.order
 
     def shuffleAndRun(): Unit = {
@@ -184,14 +192,10 @@ class Schedule[Env] (
 
       shufflerTmp.append(nextEvent)
 
-      continue = !isEmpty && queue.head.time == runTime
+      continue = !isEmpty && queue.head.time == time
     }
 
-    if(!shufflerTmp.isEmpty) { shuffleAndRun() }
-
-    // Increment the time and step
-    time = runTime
-    step += 1
+    if(shufflerTmp.nonEmpty) { shuffleAndRun() }
 
     return true
   }
