@@ -36,28 +36,39 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     testEnv.toList shouldEqual testEnv.toList.sorted
   }
 
-  it should "not enqueue an item AfterSimulation" in {
-    schedule.enqueue(1.0, 0, new NoOp[MyEnv]) shouldBe true
+  it should "accept an event at the current time, but increment it" in {
+    schedule.time = 1.0
+    schedule.enqueue(1.0, 0, new NoOp[MyEnv])
+    val scheduledTime = schedule.dequeueAll().head.time
 
-    schedule.enqueue(AfterSimulation, 0, new NoOp[MyEnv]) shouldBe false
+    scheduledTime shouldNot equal(1.0)
+    scheduledTime should be < 2.0
+  }
+
+  it should "not accent an event after MaximumTime" in {
+    schedule.enqueue(1.0, 0, new NoOp[MyEnv])
+
+    an [IllegalArgumentException] should be thrownBy {
+      schedule.enqueue(MaximumTime + 2.0, 0, new NoOp[MyEnv]) shouldBe false
+    }
   }
 
   it should "not accept an event prior to Epoch" in {
     an [IllegalArgumentException] should be thrownBy {
-      val _ = schedule.enqueue(Epoch - ulp(Epoch), 0, new NoOp[MyEnv])
+      schedule.enqueue(Epoch - ulp(Epoch), 0, new NoOp[MyEnv])
     }
   }
 
   it should "not accept an time that is NaN" in {
     an [IllegalArgumentException] should be thrownBy {
-      val _ = schedule.enqueue(Double.NaN, 0, new NoOp[MyEnv])
+      schedule.enqueue(Double.NaN, 0, new NoOp[MyEnv])
     }
   }
 
   it should "not accept an event in the past" in {
     schedule.time = 10.0
     an [IllegalArgumentException] should be thrownBy {
-      val _ = schedule.enqueue(5.0, 0, new NoOp[MyEnv])
+      schedule.enqueue(5.0, 0, new NoOp[MyEnv])
     }
   }
 
@@ -68,7 +79,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       schedule.enqueue(t, 0, new NoOp[MyEnv])
     }
 
-    val result = schedule.clear().map { event =>
+    val result = schedule.dequeueAll().map { event =>
       event.time -> event.order
     }.toList
 
@@ -77,7 +88,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
   it should "return to the original state on reset" in {
     schedule.time = 100.0
-    schedule.steps = 100
+    schedule.step = 100
     (0 until 10) foreach { _ =>
       schedule.enqueue(100.0, 0, new NoOp[MyEnv])
     }
@@ -86,7 +97,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.reset()
     schedule.length shouldEqual 0
     schedule.time shouldEqual Schedule.BeforeSimulation
-    schedule.steps shouldEqual 0
+    schedule.step shouldEqual 0
   }
 
   it should "shuffle events with equal times and orderings" in {
@@ -146,6 +157,18 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     envA should not equal(envC)
   }
 
+  it should "execute activities with the same time ordered by order" in {
+    schedule.enqueue(1.0, 1, new Appender(1, 1))
+    schedule.enqueue(1.0, 0, new Appender(1, 0))
+    schedule.enqueue(1.0, 0, new Appender(1, 0))
+    schedule.enqueue(1.0, 2, new Appender(1, 2))
+
+    val testEnv = ListBuffer.empty[(Double, Int)]
+    schedule.run(testEnv)
+    testEnv shouldEqual testEnv.sorted
+    schedule.step shouldEqual 1
+  }
+
   it should "combine two schedules on a call to merge" in {
     val itemsA = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
     for((t,o) <- itemsA) {
@@ -172,7 +195,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
   it should "not merge over Events scheduled in the past" in {
     schedule.time  = 1
-    schedule.steps = 1
+    schedule.step = 1
 
     schedule.enqueue(1, 1, new Appender(1, 1))
     val scheduleB = Schedule[MyEnv](rng)
@@ -189,7 +212,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.enqueue(
       0.0, 0,
       (e: MyEnv, s: Schedule[MyEnv]) => e.append(2.0 -> 1)
-    ) shouldBe true
+    )
 
     schedule.run(testEnv)
 
@@ -216,10 +239,10 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
     val testEnv = ListBuffer.empty[(Double, Int)]
 
-    schedule.step(testEnv)
+    schedule.runOneStep(testEnv)
     schedule.time shouldEqual 6.0 +- 0.0000001
 
-    schedule.step(testEnv)
+    schedule.runOneStep(testEnv)
     schedule.time shouldEqual 10.0 +- 0.0000001
   }
 
@@ -229,7 +252,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     }
 
     schedule.run(ListBuffer.empty[(Double, Int)], 7)
-    schedule.steps shouldEqual 7
+    schedule.step shouldEqual 7
   }
 
   it should "run until stopped for event scheduled as repeating" in {
@@ -240,8 +263,8 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     val testEnv = ListBuffer.empty[(Double, Int)]
     (1 to 20) foreach { step =>
       if (!schedule.isExhausted) {
-        schedule.step(testEnv)
-        step shouldEqual schedule.steps
+        schedule.runOneStep(testEnv)
+        step shouldEqual schedule.step
 
         if (step == 10) {
           stoppable.stop()
@@ -249,8 +272,8 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       }
     }
 
-    schedule should be('complete)
-    schedule.steps shouldEqual 11
+    schedule should be('exhausted)
+    schedule.step shouldEqual 11
     testEnv.length shouldEqual 10
   }
 
@@ -266,7 +289,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.run(testEnv)
 
     an [IllegalArgumentException] should be thrownBy {
-      val _ = schedule.run(testEnv)
+      schedule.run(testEnv)
     }
   }
 }
