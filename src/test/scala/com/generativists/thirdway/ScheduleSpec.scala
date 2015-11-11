@@ -303,6 +303,13 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.step shouldEqual 7
   }
 
+  it should "not change the time on run if it is not BeforeSimulation" in {
+    val testEnv = ListBuffer.empty[(Double, Int)]
+    schedule.onceIn(1.0, 0) { (e, s) => s.time shouldEqual 10.0}
+    schedule.time = 10.0
+    schedule.runUntilExhausted(testEnv)
+  }
+
   it should "run until stopped for event scheduled as repeating" in {
     val stoppable = schedule.repeating(
       new Appender(0.0, 1), 0.0, 5.0, 0
