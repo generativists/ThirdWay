@@ -21,3 +21,9 @@ the map in my head and code in this library sync up, my needs may not be
 clear. And, I won't accept a pull request if it frustrates my project. So, if 
 you have a cool idea, open up an issue first. I don't want anyone submitting a 
 good PR that gets rejected because I can't use it, yet.
+
+## Bibliography
+
+- Luke, Sean, Claudio Cioffi-Revilla, Liviu Panait, Keith Sullivan, and 
+  Gabriel Balan. "Mason: A multiagent simulation environment." *Simulation* 
+  81, no. 7 (2005): 517-527.
