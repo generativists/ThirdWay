@@ -5,6 +5,7 @@ import Implicits._
 import org.apache.commons.math3.random.MersenneTwister
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.JavaConversions._
 import scala.math.ulp
 import org.scalatest.{BeforeAndAfter, Matchers, FlatSpec}
 
@@ -463,6 +464,31 @@ class TentativeActivitySpec extends FlatSpec with Matchers {
     stoppable.stop()
     schedule.runUntilExhausted(env)
     env shouldEqual ListBuffer(1)
+  }
+}
+
+class LocallyParallelActivitySpec extends FlatSpec with Matchers {
+  type MyEnv = java.util.concurrent.LinkedBlockingQueue[Int]
+  val rng      = new MersenneTwister()
+
+  "A LocallyParallelActivity" should "execute activities across all cores" in {
+    val testEnv = new java.util.concurrent.LinkedBlockingQueue[Int]()
+    val schedule = Schedule[MyEnv](rng)
+
+    // This is basically a time-sort.
+    // However, it may be a fragile test in different environments.
+    val activities = (1 to 8) map { i =>
+      new Activity[MyEnv] {
+        override def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
+          Thread.sleep((8L - i) * 100L)
+          val _ = env.add(i)
+        }
+      }
+    }
+    schedule.once(LocallyParallelActivity(activities), 1.0, 0)
+    schedule.runUntilExhausted(testEnv)
+
+    testEnv.toList shouldEqual List(8,7,6,5,4,3,2,1)
   }
 }
 

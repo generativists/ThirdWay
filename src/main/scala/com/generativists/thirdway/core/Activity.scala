@@ -72,7 +72,30 @@ case class ShuffledActivities[Env](
     Util.shuffleInPlace(schedule.rng, activities)
     activities foreach { activity => activity(env, schedule) }
   }
+}
 
+/** Runs a set of activities in parallel using Scala's parallel collections.
+  *
+  * @note Building simulations with truly-concurrent agents is *really* hard.
+  *       As a design assumption, ThirdWay considers thread-based, parallel
+  *       simulations to be a bad idea. However, there are situations that
+  *       demand true concurrency. For example, the cognitive component of
+  *       thick agents may be embarrassingly parallel.
+  *
+  *       Rather than using `synchronized`-based locking, schedule the heavy
+  *       operation separately. For example, create an activity that calls
+  *       some agent's `think()` method. This method should do no
+  *       environmental or schedule mutation. Then, schedule it repeatedly,
+  *       with an ordering that comes after mutating and interacting
+  *       activities.
+  */
+case class LocallyParallelActivity[Env](
+  activities: Seq[Activity[Env]]
+) extends Activity[Env] {
+
+  def apply(env: Env, schedule: Schedule[Env]): Unit = {
+    activities.par.foreach { activity => activity(env, schedule) }
+  }
 }
 
 /** Does nothing. Useful for testing */
