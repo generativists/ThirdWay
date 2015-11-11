@@ -29,6 +29,25 @@ class Schedule[Env] (
     */
   protected val shufflerTmp = mutable.ArrayBuffer.empty[Event[Env]]
 
+  override def toString(): String = {
+    val timeStr = time match {
+      case Schedule.BeforeSimulation => "BeforeSimulation"
+      case Schedule.Epoch            => "Epoch"
+      case Schedule.MaximumTime      => "MaximumTime"
+      case Schedule.AfterSimulation  => "AfterSimulation"
+      case t                         => t.toString()
+    }
+
+    val nQueuedStr = length match {
+      case 0 if isExhausted => "no queued activities [Exhausted]"
+      case 0                => "no queued activities"
+      case 1                => "one queued activity"
+      case n                => s"$n queued activities"
+    }
+
+    s"Schedule at time=$timeStr, step=$step with $nQueuedStr"
+  }
+
   /** @return the number of enqueued `Event`s */
   def length  = queue.length
 

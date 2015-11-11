@@ -36,6 +36,40 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     testEnv.toList shouldEqual testEnv.toList.sorted
   }
 
+  it should "have a pretty human-readable representation" in {
+    schedule.toString shouldEqual(
+      "Schedule at time=BeforeSimulation, step=0 with no queued activities"
+    )
+
+    schedule.time = Schedule.Epoch
+    schedule.toString shouldEqual(
+      "Schedule at time=Epoch, step=0 with no queued activities"
+    )
+
+    schedule.time = Schedule.AfterSimulation
+    schedule.toString shouldEqual(
+      "Schedule at time=AfterSimulation, step=0 with no queued activities"
+    )
+
+    schedule.time = Schedule.Epoch
+    schedule.enqueue(1.0, 1, new Appender(1.0, 1))
+    schedule.toString shouldEqual(
+      "Schedule at time=Epoch, step=0 with one queued activity"
+    )
+
+    schedule.enqueue(1.0, 1, new Appender(1.0, 1))
+    schedule.toString shouldEqual(
+      "Schedule at time=Epoch, step=0 with 2 queued activities"
+    )
+
+    schedule.clear()
+    schedule.step = 1
+    schedule.time = 1
+    schedule.toString shouldEqual(
+      "Schedule at time=1.0, step=1 with no queued activities [Exhausted]"
+    )
+  }
+
   it should "accept an event at the current time, but increment it" in {
     schedule.time = 1.0
     schedule.enqueue(1.0, 0, new NoOp[MyEnv])
