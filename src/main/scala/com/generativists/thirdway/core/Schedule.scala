@@ -73,7 +73,11 @@ class Schedule[Env] (
     * @param group the activation group, given the same time
     * @param activity the activity to run
     */
-  def enqueue(at: Double, group: Int = 0, activity: Activity[Env]): Unit = {
+  def enqueue(
+    at: Double,
+    group: Int = Schedule.DefaultGroup,
+    activity: Activity[Env]
+  ): Unit = {
     require(!at.isNaN,                 "Scheduled at NaN")  // Must be first
     require(at < Schedule.MaximumTime, "Schedule already at MaximumTime")
     require(at >= Schedule.Epoch,      "Scheduled before Epoch")
@@ -87,7 +91,11 @@ class Schedule[Env] (
   }
 
   /** Schedule an activity to run once at a given time and group. */
-  def once(activity: Activity[Env], time: Double, group: Int = 0): Unit = {
+  def once(
+    activity: Activity[Env],
+    time: Double,
+    group: Int = Schedule.DefaultGroup
+  ): Unit = {
     enqueue(time, group, activity)
   }
 
@@ -101,7 +109,11 @@ class Schedule[Env] (
   }
 
   /** Schedule an activity to run once at time+delta and group. */
-  def onceIn(activity: Activity[Env], delta: Double, group: Int = 0): Unit = {
+  def onceIn(
+    activity: Activity[Env],
+    delta: Double,
+    group: Int = Schedule.DefaultGroup
+  ): Unit = {
     val init = if(time != Schedule.BeforeSimulation) time else Schedule.Epoch
     enqueue(init + delta, group, activity)
   }
@@ -128,7 +140,7 @@ class Schedule[Env] (
     activity: Activity[Env],
     startAt: Double=1.0,
     interval: Double=1.0,
-    group: Int=0
+    group: Int=Schedule.DefaultGroup
   ): Stoppable[Env] = {
     require(interval > 0)
     val repeatingActivity = RepeatingActivity(activity, interval, group)
@@ -252,6 +264,7 @@ object Schedule {
   val BeforeSimulation = Epoch - 1.0
   val AfterSimulation  = Double.PositiveInfinity
   val MaximumTime      = 9.007199254740992E15
+  val DefaultGroup     = 0
 
   // For values greater than 9.007199254740991E15, the epsilon is > 1.0.
   assert(
