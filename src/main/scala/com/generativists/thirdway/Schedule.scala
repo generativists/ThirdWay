@@ -70,8 +70,8 @@ class Schedule[Env] (
     * @param activity the activity to run
     */
   def enqueue(at: Double, order: Int = 0, activity: Activity[Env]): Unit = {
+    require(!at.isNaN,                 "Scheduled at NaN")  // Must be first
     require(at < Schedule.MaximumTime, "Schedule already at MaximumTime")
-    require(!at.isNaN,                 "Scheduled at NaN")
     require(at >= Schedule.Epoch,      "Scheduled before Epoch")
     require(at >= time,                "Scheduled in the past")
 
