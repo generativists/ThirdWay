@@ -47,11 +47,6 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       "Schedule at time=Epoch, step=0 with no queued activities"
     )
 
-    schedule.time = Schedule.MaximumTime
-    schedule.toString shouldEqual(
-      "Schedule at time=MaximumTime, step=0 with no queued activities"
-    )
-
     schedule.time = Schedule.AfterSimulation
     schedule.toString shouldEqual(
       "Schedule at time=AfterSimulation, step=0 with no queued activities"
@@ -83,14 +78,6 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
     scheduledTime shouldNot equal(1.0)
     scheduledTime should be < 2.0
-  }
-
-  it should "not accent an event after MaximumTime" in {
-    schedule.enqueue(1.0, 0, new NoOp[MyEnv])
-
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.enqueue(MaximumTime + 2.0, 0, new NoOp[MyEnv]) shouldBe false
-    }
   }
 
   it should "not accept an event prior to Epoch" in {

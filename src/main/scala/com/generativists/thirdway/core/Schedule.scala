@@ -33,7 +33,6 @@ class Schedule[Env] (
     val timeStr = time match {
       case Schedule.BeforeSimulation => "BeforeSimulation"
       case Schedule.Epoch            => "Epoch"
-      case Schedule.MaximumTime      => "MaximumTime"
       case Schedule.AfterSimulation  => "AfterSimulation"
       case t                         => t.toString()
     }
@@ -98,7 +97,6 @@ class Schedule[Env] (
     activity: Activity[Env]
   ): Unit = {
     require(!at.isNaN,                 "Scheduled at NaN")  // Must be first
-    require(at < Schedule.MaximumTime, "Schedule already at MaximumTime")
     require(at >= Schedule.Epoch,      "Scheduled before Epoch")
     require(at >= time,                "Scheduled in the past")
 
@@ -197,9 +195,7 @@ class Schedule[Env] (
     * @return true if the any activity was executed, false otherwise
     */
   def runOneStep(env: Env): Boolean = {
-    if(time >= Schedule.MaximumTime || queue.isEmpty) {
-      return false
-    }
+    if(queue.isEmpty) { return false }
 
     // Increment the time and step FIRST.
     time = queue.head.time
@@ -282,7 +278,7 @@ object Schedule {
   val Epoch            = 0.0
   val BeforeSimulation = Epoch - 1.0
   val AfterSimulation  = Double.PositiveInfinity
-  val MaximumTime      = 9.007199254740992E15
+  val MaximumInteger   = 9.007199254740992E15  // I.e. epsilon > 1.0
   val DefaultGroup     = 0
 
   // For values greater than 9.007199254740991E15, the epsilon is > 1.0.
