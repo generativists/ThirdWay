@@ -274,6 +274,11 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.time shouldEqual 10.0 +- 0.0000001
   }
 
+  it should "scheduleOnce relative to Epoch not BeforeSimulation" in {
+    schedule.onceIn(new Appender(1.0, 0), 1.0, 0)
+    schedule.dequeueAll().head.time shouldEqual 1.0
+  }
+
   it should "terminate after a number of steps if specified" in {
     (1 to 100) foreach { delta =>
       schedule.onceIn(new NoOp[MyEnv], delta.toDouble, 0)

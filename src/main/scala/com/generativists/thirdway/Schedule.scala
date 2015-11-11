@@ -89,7 +89,8 @@ class Schedule[Env] (
 
   /** Schedule an activity to run once at time+delta and order. */
   def onceIn(activity: Activity[Env], delta: Double, order: Int = 0): Unit = {
-    enqueue(time + delta, order, activity)
+    val init = if(time != Schedule.BeforeSimulation) time else Schedule.Epoch
+    enqueue(init + delta, order, activity)
   }
 
   /** Schedule an action run repeatedly at a fixed interval.
