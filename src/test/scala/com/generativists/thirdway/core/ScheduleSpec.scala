@@ -29,7 +29,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     val orderings = List(5, 3, 1, 2)
 
     for(t <- times; o <- orderings) {
-      schedule.enqueue(t, o, new Appender(t, o))
+      schedule.once(new Appender(t, o), t, o)
     }
 
     val testEnv = ListBuffer.empty[(Double, Int)]
@@ -53,12 +53,12 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     )
 
     schedule.time = Schedule.Epoch
-    schedule.enqueue(1.0, 1, new Appender(1.0, 1))
+    schedule.once(new Appender(1.0, 1), 1.0, 1)
     schedule.toString shouldEqual(
       "Schedule at time=Epoch, step=0 with one queued activity"
     )
 
-    schedule.enqueue(1.0, 1, new Appender(1.0, 1))
+    schedule.once(new Appender(1.0, 1), 1.0, 1)
     schedule.toString shouldEqual(
       "Schedule at time=Epoch, step=0 with 2 queued activities"
     )
@@ -73,7 +73,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
   it should "accept an event at the current time, but increment it" in {
     schedule.time = 1.0
-    schedule.enqueue(1.0, 0, new NoOp[MyEnv])
+    schedule.once(new NoOp[MyEnv], 1.0, 0)
     val scheduledTime = schedule.dequeueAll().head.time
 
     scheduledTime shouldNot equal(1.0)
@@ -82,20 +82,20 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
   it should "not accept an event prior to Epoch" in {
     an [IllegalArgumentException] should be thrownBy {
-      schedule.enqueue(Epoch - ulp(Epoch), 0, new NoOp[MyEnv])
+      schedule.once(new NoOp[MyEnv], Epoch - ulp(Epoch), 0)
     }
   }
 
   it should "not accept an time that is NaN" in {
     an [IllegalArgumentException] should be thrownBy {
-      schedule.enqueue(Double.NaN, 0, new NoOp[MyEnv])
+      schedule.once(new NoOp[MyEnv], Double.NaN, 0)
     }
   }
 
   it should "not accept an event in the past" in {
     schedule.time = 10.0
     an [IllegalArgumentException] should be thrownBy {
-      schedule.enqueue(5.0, 0, new NoOp[MyEnv])
+      schedule.once(new NoOp[MyEnv], 5.0, 0)
     }
   }
 
@@ -110,7 +110,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     val times = List(1.0, 5.0, 100.0, 33.0)
     val orderings = List(5, 3, 1, 2)
     for(t <- times; o <- orderings) {
-      schedule.enqueue(t, 0, new NoOp[MyEnv])
+      schedule.once(new NoOp[MyEnv], t, 0)
     }
 
     val result = schedule.dequeueAll().map { event =>
@@ -124,7 +124,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.time = 100.0
     schedule.step = 100
     (0 until 10) foreach { _ =>
-      schedule.enqueue(100.0, 0, new NoOp[MyEnv])
+      schedule.once(new NoOp[MyEnv], 100.0, 0)
     }
     schedule.length shouldEqual 10
 
@@ -147,14 +147,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     val s = Schedule[IntEnv](rng)
 
     for((i, t,o,j) <- items) {
-      s.enqueue(
-        t, o,
-        new Activity[IntEnv] {
-          def apply(env: IntEnv, schedule: Schedule[IntEnv]): Unit = {
-            env.append(i)
-          }
-        }
-      )
+      s.once(t, o) { (env, s) => env.append(i) }
     }
     s.runUntilExhausted(envA)
 
@@ -162,14 +155,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     rng.setSeed(seed)
     val envB = ListBuffer.empty[Int]
     for((i, t,o,j) <- items) {
-      s.enqueue(
-        t, o,
-        new Activity[IntEnv] {
-          def apply(env: IntEnv, schedule: Schedule[IntEnv]): Unit = {
-            env.append(i)
-          }
-        }
-      )
+      s.once(t, o) { (env, s) => env.append(i) }
     }
     s.runUntilExhausted(envB)
     envA shouldEqual envB
@@ -177,14 +163,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     s.reset()
     val envC = ListBuffer.empty[Int]
     for((i, t,o,j) <- items) {
-      s.enqueue(
-        t, o,
-        new Activity[IntEnv] {
-          def apply(env: IntEnv, schedule: Schedule[IntEnv]): Unit = {
-            env.append(i)
-          }
-        }
-      )
+      s.once(t, o) { (env, s) => env.append(i) }
     }
     s.runUntilExhausted(envC)
 
@@ -194,12 +173,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   it should "start running with a time equal to Epoch" in {
     val testEnv = ListBuffer.empty[(Double, Int)]
 
-    schedule.enqueue(
-      0.0, 0,
-      (e: MyEnv, s: Schedule[MyEnv]) => {
-        s.time shouldEqual Epoch
-      }
-    )
+    schedule.once(0.0, 0) { (env, s) => s.time shouldEqual Epoch }
 
     schedule.runUntilExhausted(testEnv)
 
@@ -207,18 +181,18 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   }
 
   it should "allow peeking" in {
-    schedule.enqueue(1.0, 1, new Appender(1, 1))
-    schedule.enqueue(1.0, 0, new Appender(1, 0))
+    schedule.once(new Appender(1, 1), 1.0, 1)
+    schedule.once(new Appender(1, 0), 1.0, 0)
 
     schedule.peek.time shouldEqual 1.0
     schedule.peek.group shouldEqual 0
   }
 
   it should "execute activities with the same time ordered by order" in {
-    schedule.enqueue(1.0, 1, new Appender(1, 1))
-    schedule.enqueue(1.0, 0, new Appender(1, 0))
-    schedule.enqueue(1.0, 0, new Appender(1, 0))
-    schedule.enqueue(1.0, 2, new Appender(1, 2))
+    schedule.once(new Appender(1, 1), 1.0, 1)
+    schedule.once(new Appender(1, 0), 1.0, 0)
+    schedule.once(new Appender(1, 0), 1.0, 0)
+    schedule.once(new Appender(1, 2), 1.0, 2)
 
     val testEnv = ListBuffer.empty[(Double, Int)]
     schedule.runUntilExhausted(testEnv)
@@ -229,7 +203,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   it should "be clearable without reseting the time and step" in {
     schedule.time = 1.0
     schedule.step = 10
-    schedule.enqueue(1.0, 1, new Appender(1, 1))
+    schedule.once(new Appender(1, 1), 1.0, 1)
 
     schedule shouldNot be('empty)
 
@@ -242,13 +216,13 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   it should "combine two schedules on a call to merge" in {
     val itemsA = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
     for((t,o) <- itemsA) {
-      schedule.enqueue(t, o, new Appender(t, o))
+      schedule.once(new Appender(t, o), t, o)
     }
 
     val itemsB = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
     val scheduleB = Schedule[MyEnv](rng)
     for((t,o) <- itemsB) {
-      scheduleB.enqueue(t, o, new Appender(t, o))
+      scheduleB.once(new Appender(t, o), t, o)
     }
 
     schedule.length shouldEqual 10
@@ -267,9 +241,9 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.time  = 1
     schedule.step = 1
 
-    schedule.enqueue(1, 1, new Appender(1, 1))
+    schedule.once(new Appender(1, 1), 1, 1)
     val scheduleB = Schedule[MyEnv](rng)
-    scheduleB.enqueue(0.5, 1, new Appender(0.5, 1))
+    scheduleB.once(new Appender(0.5, 1), 0.5, 1)
 
     an [IllegalArgumentException] should be thrownBy {
       schedule.merge(scheduleB)
@@ -279,9 +253,9 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   it should "take functions given the implicit f2Activity conversion" in {
     val testEnv = ListBuffer.empty[(Double, Int)]
 
-    schedule.enqueue(
-      0.0, 0,
-      (e: MyEnv, s: Schedule[MyEnv]) => e.append(2.0 -> 1)
+    schedule.once(
+      (e: MyEnv, s: Schedule[MyEnv]) => e.append(2.0 -> 1),
+      2.0, 1
     )
 
     schedule.runUntilExhausted(testEnv)

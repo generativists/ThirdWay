@@ -91,7 +91,7 @@ class Schedule[Env] (
     * @param group the activation group, given the same time
     * @param activity the activity to run
     */
-  def enqueue(
+  protected def enqueue(
     at: Double,
     group: Int = Schedule.DefaultGroup,
     activity: Activity[Env]
