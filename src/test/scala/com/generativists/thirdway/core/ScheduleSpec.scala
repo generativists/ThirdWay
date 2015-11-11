@@ -47,6 +47,11 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       "Schedule at time=Epoch, step=0 with no queued activities"
     )
 
+    schedule.time = Schedule.MaximumTime
+    schedule.toString shouldEqual(
+      "Schedule at time=MaximumTime, step=0 with no queued activities"
+    )
+
     schedule.time = Schedule.AfterSimulation
     schedule.toString shouldEqual(
       "Schedule at time=AfterSimulation, step=0 with no queued activities"
