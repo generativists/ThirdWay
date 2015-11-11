@@ -247,6 +247,21 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     testEnv shouldEqual ListBuffer(2.0 -> 1)
   }
 
+  it should "allow for function scheduling without implicit conversion" in {
+    val testEnv = ListBuffer.empty[(Double, Int)]
+
+    schedule.once(1.0, 1) { (e, s) => e.append((s.time, 1)) }
+    schedule.onceIn(2.0, 2) { (e, s) => e.append((s.time, 2)) }
+    schedule.runUntilExhausted(testEnv)
+
+    testEnv shouldEqual ListBuffer(0.0 -> 1, 1.0 -> 2)
+
+    schedule.reset()
+
+
+    //schedule.run(testEnv)
+  }
+
   it should "allow an event to be scheduled once at a specific time" in {
     for((t,o) <- List(5.0 -> 1, 2.0 -> 2)) {
       schedule.once(new Appender(t, o), t, o)

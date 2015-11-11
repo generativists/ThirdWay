@@ -87,10 +87,28 @@ class Schedule[Env] (
     enqueue(time, order, activity)
   }
 
+  /** Schedule an function (as an activity) to run once at a given time and
+    * order.
+    * */
+  def once[R](
+    time: Double, order: Int
+  )(f: (Env, Schedule[Env]) => R): Unit = {
+    once(Implicits.f2Activity(f), time, order)
+  }
+
   /** Schedule an activity to run once at time+delta and order. */
   def onceIn(activity: Activity[Env], delta: Double, order: Int = 0): Unit = {
     val init = if(time != Schedule.BeforeSimulation) time else Schedule.Epoch
     enqueue(init + delta, order, activity)
+  }
+
+  /** Schedule an activity (as an activity) to run once at time+delta and
+    * order.
+    */
+  def onceIn[R](
+    delta: Double, order: Int
+  )(f: (Env, Schedule[Env]) => R): Unit = {
+    onceIn(Implicits.f2Activity(f), delta, order)
   }
 
   /** Schedule an action run repeatedly at a fixed interval.
@@ -113,6 +131,16 @@ class Schedule[Env] (
     enqueue(startAt, order, repeatingActivity)
     repeatingActivity
   }
+
+  /** Schedule a function (as an action) repeatedly at a fixed interval. */
+  def repeating[R](
+    startAt: Double,
+    interval: Double,
+    order: Int
+  )(f: (Env, Schedule[Env]) => R): Stoppable[Env] = {
+    repeating(Implicits.f2Activity(f), startAt, interval, order)
+  }
+
 
   /** Runs the schedule one step forward over some environment.
     *
