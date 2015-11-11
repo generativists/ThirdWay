@@ -132,6 +132,9 @@ class Schedule[Env] (
     group: Int = Schedule.DefaultGroup
   ): Unit = {
     val init = if(time != Schedule.BeforeSimulation) time else Schedule.Epoch
+    
+    require(ulp(init) <= delta, s"Delta smaller than epsilon at time=$time")
+
     enqueue(init + delta, group, activity)
   }
 

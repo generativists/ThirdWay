@@ -99,6 +99,13 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     }
   }
 
+  "scheduleOnce" should "raise an IllegalArgumentException if delta < ε" in {
+    schedule.time = Schedule.MaximumInteger
+    an [IllegalArgumentException] should be thrownBy {
+      schedule.onceIn(new NoOp[MyEnv], 1.0, 0)
+    }
+  }
+
   it should "remove and return all items on clear" in {
     val times = List(1.0, 5.0, 100.0, 33.0)
     val orderings = List(5, 3, 1, 2)
