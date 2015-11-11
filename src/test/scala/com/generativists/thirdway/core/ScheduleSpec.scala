@@ -80,7 +80,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     }
 
     val result = schedule.dequeueAll().map { event =>
-      event.time -> event.order
+      event.time -> event.group
     }.toList
 
     result shouldEqual result.sorted
@@ -177,7 +177,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.enqueue(1.0, 0, new Appender(1, 0))
 
     schedule.peek.time shouldEqual 1.0
-    schedule.peek.order shouldEqual 0
+    schedule.peek.group shouldEqual 0
   }
 
   it should "execute activities with the same time ordered by order" in {
@@ -406,7 +406,7 @@ class RepeatingActivitySpec extends FlatSpec with Matchers {
 
     val items = schedule.dequeueAll()
     items.head.time shouldEqual 2.0
-    items.head.order shouldEqual 3
+    items.head.group shouldEqual 3
   }
 }
 

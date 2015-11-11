@@ -40,7 +40,7 @@ case class TentativeActivity[Env] (
 case class RepeatingActivity[Env](
   activity: Activity[Env],
   interval: Double,
-  order: Int,
+  group: Int,
   private var stopped: Boolean = false
 ) extends Stoppable[Env] {
   def stop() = { stopped = true }
@@ -48,7 +48,7 @@ case class RepeatingActivity[Env](
   def apply(env: Env, schedule: Schedule[Env]): Unit = {
     if (!stopped) {
       activity(env, schedule)
-      schedule.onceIn(this, interval, order)
+      schedule.onceIn(this, interval, group)
     }
   }
 }

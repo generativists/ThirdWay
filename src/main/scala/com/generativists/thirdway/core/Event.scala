@@ -1,13 +1,13 @@
 package com.generativists.thirdway.core
 
-/** Defines an activity to run at a specific, scheduled time. */
+/** Defines an activity to run at a specific, scheduled time and group. */
 case class Event[Env] (
   val time: Double,
-  val order: Int,
+  val group: Int,
   val activity: Activity[Env]
 ) extends Ordered[Event[Env]] with Serializable {
 
-  /** Defines the order over (time, order).
+  /** Defines the order over (time, group).
     *
     * @note In this method, a time of 5 is less than a time of 10, which is
     *       unsurprising. However, this class exists for use in a priority
@@ -16,7 +16,7 @@ case class Event[Env] (
     *       the order.
     */
   def compare(that: Event[Env]): Int = if (this.time == that.time) {
-    this.order compare that.order
+    this.group compare that.group
   } else {
     this.time compare that.time
   }

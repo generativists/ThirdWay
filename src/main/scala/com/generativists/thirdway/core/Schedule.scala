@@ -70,49 +70,49 @@ class Schedule[Env] (
     * the next tick.
     *
     * @param at the schedule time at which the event should activate
-    * @param order the activation order relative to other events at this time
+    * @param group the activation group, given the same time
     * @param activity the activity to run
     */
-  def enqueue(at: Double, order: Int = 0, activity: Activity[Env]): Unit = {
+  def enqueue(at: Double, group: Int = 0, activity: Activity[Env]): Unit = {
     require(!at.isNaN,                 "Scheduled at NaN")  // Must be first
     require(at < Schedule.MaximumTime, "Schedule already at MaximumTime")
     require(at >= Schedule.Epoch,      "Scheduled before Epoch")
     require(at >= time,                "Scheduled in the past")
 
     if(time == at) {
-      queue.enqueue(Event(at + ulp(at), order, activity))
+      queue.enqueue(Event(at + ulp(at), group, activity))
     } else {
-      queue.enqueue(Event(at, order, activity))
+      queue.enqueue(Event(at, group, activity))
     }
   }
 
-  /** Schedule an activity to run once at a given time and order. */
-  def once(activity: Activity[Env], time: Double, order: Int = 0): Unit = {
-    enqueue(time, order, activity)
+  /** Schedule an activity to run once at a given time and group. */
+  def once(activity: Activity[Env], time: Double, group: Int = 0): Unit = {
+    enqueue(time, group, activity)
   }
 
   /** Schedule an function (as an activity) to run once at a given time and
-    * order.
+    * group.
     * */
   def once[R](
-    time: Double, order: Int
+    time: Double, group: Int
   )(f: (Env, Schedule[Env]) => R): Unit = {
-    once(Implicits.f2Activity(f), time, order)
+    once(Implicits.f2Activity(f), time, group)
   }
 
-  /** Schedule an activity to run once at time+delta and order. */
-  def onceIn(activity: Activity[Env], delta: Double, order: Int = 0): Unit = {
+  /** Schedule an activity to run once at time+delta and group. */
+  def onceIn(activity: Activity[Env], delta: Double, group: Int = 0): Unit = {
     val init = if(time != Schedule.BeforeSimulation) time else Schedule.Epoch
-    enqueue(init + delta, order, activity)
+    enqueue(init + delta, group, activity)
   }
 
   /** Schedule an activity (as an activity) to run once at time+delta and
-    * order.
+    * group.
     */
   def onceIn[R](
-    delta: Double, order: Int
+    delta: Double, group: Int
   )(f: (Env, Schedule[Env]) => R): Unit = {
-    onceIn(Implicits.f2Activity(f), delta, order)
+    onceIn(Implicits.f2Activity(f), delta, group)
   }
 
   /** Schedule an action run repeatedly at a fixed interval.
@@ -120,7 +120,7 @@ class Schedule[Env] (
     * @param activity the activity to run repeatedly
     * @param startAt the initial scheduled time
     * @param interval the interval (in time) for rescheduling
-    * @param order the order relative to other `Event`s
+    * @param group the group relative to other `Event`s at the same time
     *
     * @return a Stoppable for possible early termination
     */
@@ -128,12 +128,12 @@ class Schedule[Env] (
     activity: Activity[Env],
     startAt: Double=1.0,
     interval: Double=1.0,
-    order: Int=0
+    group: Int=0
   ): Stoppable[Env] = {
     require(interval > 0)
-    val repeatingActivity = RepeatingActivity(activity, interval, order)
+    val repeatingActivity = RepeatingActivity(activity, interval, group)
 
-    enqueue(startAt, order, repeatingActivity)
+    enqueue(startAt, group, repeatingActivity)
 
     repeatingActivity
   }
@@ -142,9 +142,9 @@ class Schedule[Env] (
   def repeating[R](
     startAt: Double,
     interval: Double,
-    order: Int
+    group: Int
   )(f: (Env, Schedule[Env]) => R): Stoppable[Env] = {
-    repeating(Implicits.f2Activity(f), startAt, interval, order)
+    repeating(Implicits.f2Activity(f), startAt, interval, group)
   }
 
 
@@ -156,10 +156,10 @@ class Schedule[Env] (
     * given two activities at 1.0, one at 3.0, and one at 9.0, the
     * corresponding step (after each time runs) is 1, 2, and 3, respectively.
     *
-    * Activities scheduled at the same time but with a different order run
-    * over the same step. However, activities with a lower order (i.e. higher
+    * Activities scheduled at the same time but with a different group run
+    * over the same step. However, activities with a lower group (i.e. higher
     * priority) are guaranteed to run first. Activities at the same time and
-    * the same order run in a random order.
+    * the same group run in a random order.
     *
     * @param env the environment given to each activity
     *
@@ -173,7 +173,7 @@ class Schedule[Env] (
     // Increment the time and step FIRST.
     time = queue.head.time
     step += 1
-    var currentOrder = queue.head.order
+    var currentGroup = queue.head.group
 
     def shuffleAndRun(): Unit = {
       Util.shuffleInPlace(rng, shufflerTmp)
@@ -181,15 +181,15 @@ class Schedule[Env] (
       shufflerTmp.clear()
     }
 
-    // Collect all events at the current time, grouping by the order field.
+    // Collect all events at the current time, grouping by the group field.
     // Shuffle and run each group.
     var continue = true
     while(continue) {
       val nextEvent = queue.dequeue()
 
-      if(nextEvent.order != currentOrder) {
+      if(nextEvent.group != currentGroup) {
         shuffleAndRun()
-        currentOrder = nextEvent.order
+        currentGroup = nextEvent.group
       }
 
       shufflerTmp.append(nextEvent)
