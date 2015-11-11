@@ -169,6 +169,19 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.step shouldEqual 1
   }
 
+  it should "be clearable without reseting the time and step" in {
+    schedule.time = 1.0
+    schedule.step = 10
+    schedule.enqueue(1.0, 1, new Appender(1, 1))
+
+    schedule shouldNot be('empty)
+
+    schedule.clear()
+    schedule should be('empty)
+    schedule.time shouldEqual 1.0
+    schedule.step shouldEqual 10
+  }
+
   it should "combine two schedules on a call to merge" in {
     val itemsA = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
     for((t,o) <- itemsA) {
