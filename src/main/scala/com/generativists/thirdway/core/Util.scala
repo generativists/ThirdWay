@@ -1,6 +1,8 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
 
-import java.io.{ObjectInputStream, ByteArrayInputStream, ObjectOutputStream, ByteArrayOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
+
+import com.generativists.thirdway._
 
 import scala.collection.mutable
 

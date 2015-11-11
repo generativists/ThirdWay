@@ -1,6 +1,6 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
 
-import com.generativists.thirdway.Implicits._
+import Implicits._
 
 import org.apache.commons.math3.random.MersenneTwister
 

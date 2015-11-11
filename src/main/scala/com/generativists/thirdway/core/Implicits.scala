@@ -1,4 +1,4 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
 
 object Implicits {
   implicit def f2Activity[E, R](f: (E, Schedule[E]) => R): Activity[E] = {

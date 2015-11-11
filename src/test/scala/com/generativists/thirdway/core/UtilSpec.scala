@@ -1,6 +1,6 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
 
-import org.scalatest.{Matchers, FlatSpec}
+import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.mutable
 

@@ -1,4 +1,4 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
 
 import org.scalatest._
 

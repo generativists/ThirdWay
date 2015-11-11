@@ -1,4 +1,4 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
 
 /** Defines an activity to run at a specific, scheduled time. */
 case class Event[Env] (

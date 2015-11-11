@@ -1,4 +1,6 @@
-package com.generativists.thirdway
+package com.generativists.thirdway.core
+
+import com.generativists.thirdway._
 
 import scala.collection.generic.Clearable
 import scala.collection.mutable
