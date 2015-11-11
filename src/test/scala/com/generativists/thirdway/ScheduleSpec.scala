@@ -157,6 +157,21 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     envA should not equal(envC)
   }
 
+  it should "start running with a time equal to Epoch" in {
+    val testEnv = ListBuffer.empty[(Double, Int)]
+
+    schedule.enqueue(
+      0.0, 0,
+      (e: MyEnv, s: Schedule[MyEnv]) => {
+        s.time shouldEqual Epoch
+      }
+    )
+
+    schedule.runUntilExhausted(testEnv)
+
+
+  }
+
   it should "execute activities with the same time ordered by order" in {
     schedule.enqueue(1.0, 1, new Appender(1, 1))
     schedule.enqueue(1.0, 0, new Appender(1, 0))

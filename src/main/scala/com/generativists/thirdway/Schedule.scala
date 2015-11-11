@@ -193,6 +193,10 @@ class Schedule[Env] (
   def run(env: Env)(continueCondition: (Schedule[Env]) => Boolean): Unit = {
     require(!queue.isEmpty, "Schedule already exhausted")
 
+    if(time == Schedule.BeforeSimulation) {
+      time = Schedule.Epoch
+    }
+
     while(runOneStep(env) && continueCondition(this)) {
       // pass
     }
