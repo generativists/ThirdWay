@@ -129,7 +129,7 @@ class Schedule[Env] (
     * @return true if the any activity was executed, false otherwise
     */
   def runOneStep(env: Env): Boolean = {
-    if(time == Schedule.AfterSimulation || queue.isEmpty) {
+    if(time >= Schedule.MaximumTime || queue.isEmpty) {
       return false
     }
 
