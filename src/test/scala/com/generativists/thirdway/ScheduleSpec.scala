@@ -32,7 +32,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     }
 
     val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.run(testEnv)
+    schedule.runUntilExhausted(testEnv)
     testEnv.toList shouldEqual testEnv.toList.sorted
   }
 
@@ -122,7 +122,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
         }
       )
     }
-    s.run(envA)
+    s.runUntilExhausted(envA)
 
     s.reset()
     rng.setSeed(seed)
@@ -137,7 +137,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
         }
       )
     }
-    s.run(envB)
+    s.runUntilExhausted(envB)
     envA shouldEqual envB
 
     s.reset()
@@ -152,7 +152,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
         }
       )
     }
-    s.run(envC)
+    s.runUntilExhausted(envC)
 
     envA should not equal(envC)
   }
@@ -164,7 +164,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.enqueue(1.0, 2, new Appender(1, 2))
 
     val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.run(testEnv)
+    schedule.runUntilExhausted(testEnv)
     testEnv shouldEqual testEnv.sorted
     schedule.step shouldEqual 1
   }
@@ -201,7 +201,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     schedule.length shouldEqual 20
 
     val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.run(testEnv)
+    schedule.runUntilExhausted(testEnv)
     val bothSorted = (itemsA ++ itemsB).sorted
     testEnv shouldEqual bothSorted
   }
@@ -227,7 +227,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       (e: MyEnv, s: Schedule[MyEnv]) => e.append(2.0 -> 1)
     )
 
-    schedule.run(testEnv)
+    schedule.runUntilExhausted(testEnv)
 
     testEnv shouldEqual ListBuffer(2.0 -> 1)
   }
@@ -238,7 +238,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
     }
 
     val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.run(testEnv)
+    schedule.runUntilExhausted(testEnv)
 
     testEnv shouldEqual testEnv.sorted
   }
@@ -264,7 +264,7 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
       schedule.onceIn(new NoOp[MyEnv], delta.toDouble, 0)
     }
 
-    schedule.run(ListBuffer.empty[(Double, Int)], 7)
+    schedule.runNSteps(ListBuffer.empty[(Double, Int)], 7)
     schedule.step shouldEqual 7
   }
 
@@ -299,10 +299,10 @@ class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
   it should "raise an IllegalArgumentException if run after exhausted" in {
     val testEnv = ListBuffer.empty[(Double, Int)]
     schedule.onceIn(new NoOp[MyEnv], 1.0, 0)
-    schedule.run(testEnv)
+    schedule.runUntilExhausted(testEnv)
 
     an [IllegalArgumentException] should be thrownBy {
-      schedule.run(testEnv)
+      schedule.runUntilExhausted(testEnv)
     }
   }
 }
@@ -324,7 +324,7 @@ class SequencedActivitiesSpec extends FlatSpec with Matchers {
     )
     schedule.once(seq, 1.0, 0)
     val env = ListBuffer.empty[Int]
-    schedule.run(env)
+    schedule.runUntilExhausted(env)
     env shouldEqual ListBuffer(5, 2, 1, 9)
   }
 }
@@ -346,7 +346,7 @@ class TentativeActivitySpec extends FlatSpec with Matchers {
     schedule.once(stoppable, 1.0, 0)
     val env = ListBuffer.empty[Int]
     stoppable.stop()
-    schedule.run(env)
+    schedule.runUntilExhausted(env)
     env shouldEqual ListBuffer(1)
   }
 }
@@ -369,12 +369,12 @@ class ShuffledActivitiesSpec extends FlatSpec with Matchers {
 
     val envA = ListBuffer.empty[Int]
     schedule.once(activities, 0.0, 1)
-    schedule.run(envA)
+    schedule.runUntilExhausted(envA)
 
     val envB = ListBuffer.empty[Int]
     schedule.reset()
     schedule.once(activities, 0.0, 1)
-    schedule.run(envB)
+    schedule.runUntilExhausted(envB)
 
     envA shouldNot equal(envB)
   }

@@ -187,16 +187,24 @@ class Schedule[Env] (
     other.queue.foreach { event => queue.enqueue(event) }
   }
 
-  /** Runs a schedule over an environment for n steps or until it is
-    * exhausted.
+  /** Runs a schedule until over an environment until it is exhausted or the
+    * continueConditional returns false.
     */
-  def run(env: Env, n:Int = Int.MaxValue): Unit = {
+  def run(env: Env)(continueCondition: (Schedule[Env]) => Boolean): Unit = {
     require(!queue.isEmpty, "Schedule already exhausted")
 
-    while(runOneStep(env) && step < n) {
+    while(runOneStep(env) && continueCondition(this)) {
       // pass
     }
   }
+
+  /** Runs a schedule until it is exhausted */
+  def runUntilExhausted(env: Env) = run(env){ _ => true }
+
+  /** Runs a schedule over an environment for n steps or until it is
+    * exhausted.
+    */
+  def runNSteps(env: Env, n: Int) = run(env){ _.step < n }
 }
 
 
