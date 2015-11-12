@@ -43,8 +43,8 @@ all regressions and bugs. But, in agent-based modeling, it's not a garnish.
 Again, if the models are inherently complex, code must be verified to ensure 
 you know why something happens. 
 
-**As a rule, ThirdWay assumes **a model without good code coverage incorrect 
-and bug-ridden. 
+**As a rule, ThirdWay assumes a model without good code coverage incorrect 
+and bug-ridden**.
 
 
 ### Speed is a Subordinate Concern
