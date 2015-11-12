@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, FunSpec}
 import scala.collection.mutable.ListBuffer
 
 abstract class ScheduleComponentSpec extends FunSpec with Matchers {
-  val rng = new MersenneTwister()
+  val rng = new scala.util.Random()
 
   def genSchedule[T]() = Schedule[T](rng)
 

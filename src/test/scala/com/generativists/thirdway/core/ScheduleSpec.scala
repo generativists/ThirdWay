@@ -305,7 +305,7 @@ class ScheduleSpec extends ScheduleComponentSpec {
 
         // First run.
         val (envA, scheduleA) = genListBufferBasedEnvAndSchedule[Int]()
-        val seed = scheduleA.rng.nextInt()
+        val seed = scheduleA.rng.nextLong()
         scheduleA.rng.setSeed(seed)
         items foreach { case (i, t, g) =>
           scheduleA.once(t, g) { (env, s) => env.append(i) }

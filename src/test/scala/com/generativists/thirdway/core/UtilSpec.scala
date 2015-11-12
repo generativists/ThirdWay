@@ -24,7 +24,7 @@ class UtilSpec extends FunSpec with Matchers {
 
   describe("shuffleInPlace") {
     it("should randomize the order of a given collection") {
-      val rng = new MersenneTwister()
+      val rng = new scala.util.Random()
       val symbols = List('A, 'B, 'C)
       val counts = symbols.map { sym => sym -> Array(0, 0, 0) }.toMap
 

@@ -8,7 +8,7 @@ scalaVersion := "2.11.7"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
-libraryDependencies += "org.apache.commons" % "commons-math3" % "3.5"
+libraryDependencies += "org.apache.commons" % "commons-math3" % "3.5" % "test"
 
 scalacOptions ++= Seq(
   "-deprecation",
