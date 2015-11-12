@@ -1,496 +1,348 @@
 package com.generativists.thirdway.core
 
-import Implicits._
-
-import org.apache.commons.math3.random.MersenneTwister
-
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 import scala.math.ulp
-import org.scalatest.{BeforeAndAfter, Matchers, FlatSpec}
 
-
-class ScheduleSpec extends FlatSpec with Matchers with BeforeAndAfter {
+class ScheduleSpec extends ScheduleComponentSpec {
   import Schedule._
-  type MyEnv   = ListBuffer[(Double, Int)]
-  val rng      = new MersenneTwister()
-  val schedule = Schedule[MyEnv](rng)
 
-  class Appender(t: Double, o: Int) extends Activity[MyEnv] {
-    def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
-      env.append(t -> o)
-    }
-  }
+  describe("A Schedule") {
+    it("should prioritize Events by ascending (time, group) order") {
+      val (env, schedule) = genListBufferBasedEnvAndSchedule[(Double, Int)]()
 
-  before { schedule.reset() }
+      for(time <- List(1.0, 5.0, 100.0, 33.0); group <- List(5, 3, 1, 2)) {
+        schedule.once(time, group) { (buf, _) => buf.append(time -> group) }
+      }
 
-  "A Schedule" should "prioritize items by ActivationPoint" in {
-    val times = List(1.0, 5.0, 100.0, 33.0)
-    val orderings = List(5, 3, 1, 2)
-
-    for(t <- times; o <- orderings) {
-      schedule.once(new Appender(t, o), t, o)
+      schedule.runUntilExhausted(env)
+      env.toList shouldEqual env.toList.sorted
     }
 
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.runUntilExhausted(testEnv)
-    testEnv.toList shouldEqual testEnv.toList.sorted
-  }
-
-  it should "have a pretty human-readable representation" in {
-    schedule.toString shouldEqual(
-      "Schedule at time=BeforeSimulation, step=0 with no queued activities"
-    )
-
-    schedule.time = Schedule.Epoch
-    schedule.toString shouldEqual(
-      "Schedule at time=Epoch, step=0 with no queued activities"
-    )
-
-    schedule.time = Schedule.AfterSimulation
-    schedule.toString shouldEqual(
-      "Schedule at time=AfterSimulation, step=0 with no queued activities"
-    )
-
-    schedule.time = Schedule.Epoch
-    schedule.once(new Appender(1.0, 1), 1.0, 1)
-    schedule.toString shouldEqual(
-      "Schedule at time=Epoch, step=0 with one queued activity"
-    )
-
-    schedule.once(new Appender(1.0, 1), 1.0, 1)
-    schedule.toString shouldEqual(
-      "Schedule at time=Epoch, step=0 with 2 queued activities"
-    )
-
-    schedule.clear()
-    schedule.step = 1
-    schedule.time = 1
-    schedule.toString shouldEqual(
-      "Schedule at time=1.0, step=1 with no queued activities [Exhausted]"
-    )
-  }
-
-  it should "accept an event at the current time, but increment it" in {
-    schedule.time = 1.0
-    schedule.once(new NoOp[MyEnv], 1.0, 0)
-    val scheduledTime = schedule.dequeueAll().head.time
-
-    scheduledTime shouldNot equal(1.0)
-    scheduledTime should be < 2.0
-  }
-
-  it should "not accept an event prior to Epoch" in {
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.once(new NoOp[MyEnv], Epoch - ulp(Epoch), 0)
-    }
-  }
-
-  it should "not accept an time that is NaN" in {
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.once(new NoOp[MyEnv], Double.NaN, 0)
-    }
-  }
-
-  it should "not accept an event in the past" in {
-    schedule.time = 10.0
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.once(new NoOp[MyEnv], 5.0, 0)
-    }
-  }
-
-  "scheduleOnce" should "raise an IllegalArgumentException if delta < ε" in {
-    schedule.time = Schedule.MaximumInteger
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.onceIn(new NoOp[MyEnv], 1.0, 0)
-    }
-  }
-
-  it should "remove and return all items on clear" in {
-    val times = List(1.0, 5.0, 100.0, 33.0)
-    val orderings = List(5, 3, 1, 2)
-    for(t <- times; o <- orderings) {
-      schedule.once(new NoOp[MyEnv], t, 0)
-    }
-
-    val result = schedule.dequeueAll().map { event =>
-      event.time -> event.group
-    }.toList
-
-    result shouldEqual result.sorted
-  }
-
-  it should "return to the original state on reset" in {
-    schedule.time = 100.0
-    schedule.step = 100
-    (0 until 10) foreach { _ =>
-      schedule.once(new NoOp[MyEnv], 100.0, 0)
-    }
-    schedule.length shouldEqual 10
-
-    schedule.reset()
-    schedule.length shouldEqual 0
-    schedule.time shouldEqual Schedule.BeforeSimulation
-    schedule.step shouldEqual 0
-  }
-
-  it should "shuffle events with equal times and orderings" in {
-    type IntEnv = ListBuffer[Int]
-
-    val items = (0 until 100) map { i =>
-      (i, 0.0, 0, rng.nextInt)
-    }
-
-    val seed = rng.nextInt()
-    rng.setSeed(seed)
-    val envA = ListBuffer.empty[Int]
-    val s = Schedule[IntEnv](rng)
-
-    for((i, t,o,j) <- items) {
-      s.once(t, o) { (env, s) => env.append(i) }
-    }
-    s.runUntilExhausted(envA)
-
-    s.reset()
-    rng.setSeed(seed)
-    val envB = ListBuffer.empty[Int]
-    for((i, t,o,j) <- items) {
-      s.once(t, o) { (env, s) => env.append(i) }
-    }
-    s.runUntilExhausted(envB)
-    envA shouldEqual envB
-
-    s.reset()
-    val envC = ListBuffer.empty[Int]
-    for((i, t,o,j) <- items) {
-      s.once(t, o) { (env, s) => env.append(i) }
-    }
-    s.runUntilExhausted(envC)
-
-    envA should not equal(envC)
-  }
-
-  it should "start running with a time equal to Epoch" in {
-    val testEnv = ListBuffer.empty[(Double, Int)]
-
-    schedule.once(0.0, 0) { (env, s) => s.time shouldEqual Epoch }
-
-    schedule.runUntilExhausted(testEnv)
-
-
-  }
-
-  it should "allow peeking" in {
-    schedule.once(new Appender(1, 1), 1.0, 1)
-    schedule.once(new Appender(1, 0), 1.0, 0)
-
-    schedule.peek.time shouldEqual 1.0
-    schedule.peek.group shouldEqual 0
-  }
-
-  it should "execute activities with the same time ordered by order" in {
-    schedule.once(new Appender(1, 1), 1.0, 1)
-    schedule.once(new Appender(1, 0), 1.0, 0)
-    schedule.once(new Appender(1, 0), 1.0, 0)
-    schedule.once(new Appender(1, 2), 1.0, 2)
-
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.runUntilExhausted(testEnv)
-    testEnv shouldEqual testEnv.sorted
-    schedule.step shouldEqual 1
-  }
-
-  it should "be clearable without reseting the time and step" in {
-    schedule.time = 1.0
-    schedule.step = 10
-    schedule.once(new Appender(1, 1), 1.0, 1)
-
-    schedule shouldNot be('empty)
-
-    schedule.clear()
-    schedule should be('empty)
-    schedule.time shouldEqual 1.0
-    schedule.step shouldEqual 10
-  }
-
-  it should "combine two schedules on a call to merge" in {
-    val itemsA = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
-    for((t,o) <- itemsA) {
-      schedule.once(new Appender(t, o), t, o)
-    }
-
-    val itemsB = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
-    val scheduleB = Schedule[MyEnv](rng)
-    for((t,o) <- itemsB) {
-      scheduleB.once(new Appender(t, o), t, o)
-    }
-
-    schedule.length shouldEqual 10
-    scheduleB.length shouldEqual 10
-
-    schedule.merge(scheduleB)
-    schedule.length shouldEqual 20
-
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.runUntilExhausted(testEnv)
-    val bothSorted = (itemsA ++ itemsB).sorted
-    testEnv shouldEqual bothSorted
-  }
-
-  it should "not merge over Events scheduled in the past" in {
-    schedule.time  = 1
-    schedule.step = 1
-
-    schedule.once(new Appender(1, 1), 1, 1)
-    val scheduleB = Schedule[MyEnv](rng)
-    scheduleB.once(new Appender(0.5, 1), 0.5, 1)
-
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.merge(scheduleB)
-    }
-  }
-
-  it should "take functions given the implicit f2Activity conversion" in {
-    val testEnv = ListBuffer.empty[(Double, Int)]
-
-    schedule.once(
-      (e: MyEnv, s: Schedule[MyEnv]) => e.append(2.0 -> 1),
-      2.0, 1
-    )
-
-    schedule.runUntilExhausted(testEnv)
-
-    testEnv shouldEqual ListBuffer(2.0 -> 1)
-  }
-
-  it should "allow for function scheduling without implicit conversion" in {
-    val testEnv = ListBuffer.empty[(Double, Int)]
-
-    schedule.once(1.0, 1) { (e, s) => e.append((s.time, 1)) }
-    schedule.onceIn(2.0, 2) { (e, s) => e.append((s.time, 2)) }
-    schedule.runUntilExhausted(testEnv)
-
-    testEnv shouldEqual ListBuffer(1.0 -> 1, 2.0 -> 2)
-
-    schedule.reset()
-    testEnv.clear()
-    schedule.repeating(1.0, 1.0, 1) { (e, s) => e.append((s.time, 1)) }
-    schedule.time = Schedule.Epoch
-    schedule.runNSteps(testEnv, 3)
-
-    //schedule.runNSteps(testEnv, 5)
-    testEnv shouldEqual ListBuffer(
-      1.0 -> 1, 2.0 -> 1, 3.0 -> 1
-    )
-  }
-
-  it should "allow an event to be scheduled once at a specific time" in {
-    for((t,o) <- List(5.0 -> 1, 2.0 -> 2)) {
-      schedule.once(new Appender(t, o), t, o)
-    }
-
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.runUntilExhausted(testEnv)
-
-    testEnv shouldEqual testEnv.sorted
-  }
-
-  it should "allow an event to be scheduled some time delta ahead" in {
-    schedule.time = 4.0
-
-    for((t,o) <- List(6.0 -> 1, 2.0 -> 2)) {
-      schedule.onceIn(new Appender(t, o), t, o)
-    }
-
-    val testEnv = ListBuffer.empty[(Double, Int)]
-
-    schedule.runOneStep(testEnv)
-    schedule.time shouldEqual 6.0 +- 0.0000001
-
-    schedule.runOneStep(testEnv)
-    schedule.time shouldEqual 10.0 +- 0.0000001
-  }
-
-  it should "scheduleOnce relative to Epoch not BeforeSimulation" in {
-    schedule.onceIn(new Appender(1.0, 0), 1.0, 0)
-    schedule.dequeueAll().head.time shouldEqual 1.0
-  }
-
-  it should "terminate after a number of steps if specified" in {
-    (1 to 100) foreach { delta =>
-      schedule.onceIn(new NoOp[MyEnv], delta.toDouble, 0)
-    }
-
-    schedule.runNSteps(ListBuffer.empty[(Double, Int)], 7)
-    schedule.step shouldEqual 7
-  }
-
-  it should "not zero-inc the time on run if it is not BeforeSimulation" in {
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.time = 10.0
-    schedule.onceIn(1.0, 0) { (e, s) => s.time shouldEqual 11.0}
-    schedule.runUntilExhausted(testEnv)
-  }
-
-  it should "run until stopped for event scheduled as repeating" in {
-    val stoppable = schedule.repeating(
-      new Appender(0.0, 1), 0.0, 5.0, 0
-    )
-
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    (1 to 20) foreach { step =>
-      if (!schedule.isExhausted) {
-        schedule.runOneStep(testEnv)
-        step shouldEqual schedule.step
-
-        if (step == 10) {
-          stoppable.stop()
+    describe("once") {
+      describe("when called with time equal to the schedule's time") {
+        it("increments the given time by Double's epsilon") {
+          val now = 1.0
+
+          val schedule = genSchedule[Int]()
+          schedule.time = now
+
+          schedule.once(new NoOp[Int], now, DefaultGroup)
+
+          schedule.peek.time shouldNot equal(now)
+          schedule.peek.time shouldEqual now + ulp(now)
+        }
+      }
+
+      describe("should raise an IllegalArgumentException") {
+        it("when the time is NaN") {
+          an [IllegalArgumentException] should be thrownBy {
+            genSchedule[Int]().once(new NoOp[Int], Double.NaN, DefaultGroup)
+          }
+        }
+
+        it("when the event time is prior to Epoch") {
+          an [IllegalArgumentException] should be thrownBy {
+            genSchedule[Int]().once(new NoOp[Int], Epoch - 100.0, DefaultGroup)
+          }
+        }
+
+        it("when the event time is in the past relative to schedule time") {
+          val schedule = genSchedule[Int]()
+          schedule.time = 10.0
+          an [IllegalArgumentException] should be thrownBy {
+            schedule.once(new NoOp[Int], 5.0, DefaultGroup)
+          }
         }
       }
     }
 
-    schedule should be('exhausted)
-    schedule.step shouldEqual 11
-    testEnv.length shouldEqual 10
-  }
+    describe("onceIn") {
+      it("should schedule an event to activate some time delta ahead") {
+        val (env, schedule) = genListBufferBasedEnvAndSchedule[Int]()
+        val now = 4.0
+        schedule.time = now
 
-  it should "only allow repeating actions with a positive interval" in {
-    an [IllegalArgumentException] should be thrownBy {
-      val _ = schedule.repeating(new Appender(0.0, 1), 0.0, -1.0, 0)
-    }
-  }
+        for((t, g) <- List(6.0 -> 1, 2.0 -> 2)) {
+          schedule.onceIn(t, g) { (_, s) => s.time shouldEqual t + now }
+        }
+        schedule.runUntilExhausted(env)
+      }
 
-  it should "raise an IllegalArgumentException if run after exhausted" in {
-    val testEnv = ListBuffer.empty[(Double, Int)]
-    schedule.onceIn(new NoOp[MyEnv], 1.0, 0)
-    schedule.runUntilExhausted(testEnv)
+      it("should schedule relative to Epoch if time is BeforeSimulation") {
+        val schedule = genSchedule[Int]()
+        schedule.onceIn(new NoOp[Int], 1.0, 0)
+        schedule.peek.time shouldEqual 1.0
+      }
 
-    an [IllegalArgumentException] should be thrownBy {
-      schedule.runUntilExhausted(testEnv)
-    }
-  }
-}
+      it("should schedule relative to the time if >= Epoch") {
+        val schedule = genSchedule[Int]()
+        schedule.time = 10.0
+        schedule.onceIn(1.0, 0) { (e, s) => s.time shouldEqual 11.0}
+        schedule.runUntilExhausted(10)
+      }
 
-class SequencedActivitiesSpec extends FlatSpec with Matchers {
-  type MyEnv   = ListBuffer[Int]
-  val rng      = new MersenneTwister()
-  val schedule = Schedule[MyEnv](rng)
-
-  class Appender(i: Int) extends Activity[MyEnv] {
-    def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
-      env.append(i)
-    }
-  }
-
-  "A SequencedActivity" should "execute each activity in order" in {
-    val seq = SequencedActivities(
-      List(new Appender(5), new Appender(2), new Appender(1), new Appender(9))
-    )
-    schedule.once(seq, 1.0, 0)
-    val env = ListBuffer.empty[Int]
-    schedule.runUntilExhausted(env)
-    env shouldEqual ListBuffer(5, 2, 1, 9)
-  }
-}
-
-class RepeatingActivitySpec extends FlatSpec with Matchers {
-  type MyEnv   = ListBuffer[Int]
-  val rng      = new MersenneTwister()
-  val schedule = Schedule[MyEnv](rng)
-
-  class Appender(i: Int) extends Activity[MyEnv] {
-    def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
-      env.append(i)
-    }
-  }
-
-  "RepeatingActivity" should "run an underlying activity then reschedule" in {
-    schedule.reset()
-    schedule.time = 1.0
-
-    val env = ListBuffer.empty[Int]
-    val repeater = RepeatingActivity(new Appender(1), 1.0, 3)
-    repeater(env, schedule)
-
-    val items = schedule.dequeueAll()
-    items.head.time shouldEqual 2.0
-    items.head.group shouldEqual 3
-  }
-}
-
-class TentativeActivitySpec extends FlatSpec with Matchers {
-  type MyEnv   = ListBuffer[Int]
-  val rng      = new MersenneTwister()
-  val schedule = Schedule[MyEnv](rng)
-
-  class Appender(i: Int) extends Activity[MyEnv] {
-    def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
-      env.append(i)
-    }
-  }
-
-  "A TentativeActivity" should "not execute when stopped" in {
-    schedule.once(TentativeActivity(new Appender(1)), 1.0, 0)
-    val stoppable = TentativeActivity(new Appender(2))
-    schedule.once(stoppable, 1.0, 0)
-    val env = ListBuffer.empty[Int]
-    stoppable.stop()
-    schedule.runUntilExhausted(env)
-    env shouldEqual ListBuffer(1)
-  }
-}
-
-class LocallyParallelActivitySpec extends FlatSpec with Matchers {
-  type MyEnv = java.util.concurrent.LinkedBlockingQueue[Int]
-  val rng      = new MersenneTwister()
-
-  "A LocallyParallelActivity" should "execute activities across all cores" in {
-    val testEnv = new java.util.concurrent.LinkedBlockingQueue[Int]()
-    val schedule = Schedule[MyEnv](rng)
-
-    // This is basically a time-sort.
-    // However, it may be a fragile test in different environments.
-    val activities = (1 to 8) map { i =>
-      new Activity[MyEnv] {
-        override def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
-          Thread.sleep((8L - i) * 100L)
-          val _ = env.add(i)
+      it("should raise an IllegalArgumentException if delta < Double's ε") {
+        val schedule = genSchedule[Int]()
+        schedule.time = MaximumInteger
+        an [IllegalArgumentException] should be thrownBy {
+          schedule.onceIn(new NoOp[Int], 1.0, DefaultGroup)
         }
       }
     }
-    schedule.once(LocallyParallelActivity(activities), 1.0, 0)
-    schedule.runUntilExhausted(testEnv)
 
-    testEnv.toList shouldEqual List(8,7,6,5,4,3,2,1)
-  }
-}
+    describe("repeating") {
+      it("should raise an IllegalArgumentException for a negative interval") {
+        val schedule = genSchedule[Int]()
 
-class ShuffledActivitiesSpec extends FlatSpec with Matchers {
-  type MyEnv   = ListBuffer[Int]
-  val rng      = new MersenneTwister()
-  val schedule = Schedule[MyEnv](rng)
+        an [IllegalArgumentException] should be thrownBy {
+          val _ = schedule.repeating(new NoOp[Int], 0.0, -1.0, 0)
+        }
+      }
 
-  class Appender(i: Int) extends Activity[MyEnv] {
-    def apply(env: MyEnv, schedule: Schedule[MyEnv]): Unit = {
-      env.append(i)
+      it("should reschedule itself and run until it is stopped") {
+        val (env, schedule) = genListBufferBasedEnvAndSchedule[(Double, Int)]()
+
+        val stoppable = schedule.repeating(0.0, 5.0, 0) { (e, s) =>
+          e.append(0.0 -> 1)
+        }
+
+        (1 to 20) foreach { step =>
+          if (!schedule.isExhausted) {
+            schedule.runOneStep(env)
+            step shouldEqual schedule.step
+
+            if (step == 10) { stoppable.stop() }
+          }
+        }
+
+        schedule should be('exhausted)
+        schedule.step shouldEqual 11
+        env.length shouldEqual 10
+      }
     }
-  }
 
-  "ShuffledActivities" should "run in an shuffled order" in {
-    val activities = ShuffledActivities[MyEnv](
-      (0 until 20).map{i => new Appender(i)}.toBuffer
-    )
+    describe("peek") {
+      it("should return highest priority event without dequeuing it") {
+        val schedule = genSchedule[Int]()
+        schedule.once(new NoOp[Int], 1.0, 1)
+        schedule.once(new NoOp[Int], 1.0, 0)
+        schedule.length shouldEqual 2
 
-    val envA = ListBuffer.empty[Int]
-    schedule.once(activities, 0.0, 1)
-    schedule.runUntilExhausted(envA)
+        schedule.peek.time shouldEqual 1.0
+        schedule.peek.group shouldEqual 0
+        schedule.length shouldEqual 2
+      }
+    }
 
-    val envB = ListBuffer.empty[Int]
-    schedule.reset()
-    schedule.once(activities, 0.0, 1)
-    schedule.runUntilExhausted(envB)
+    describe("clear") {
+      it("should only remove all the items from the queue") {
+        val schedule = genSchedule[Int]
+        schedule.time = 5.0
+        schedule.step = 1
 
-    envA shouldNot equal(envB)
+        schedule.once(new NoOp[Int], 6.0, DefaultGroup)
+        schedule shouldNot be('empty)
+
+        schedule.clear()
+
+        schedule should be('empty)
+        schedule.time shouldEqual 5.0
+        schedule.step shouldEqual   1
+      }
+    }
+
+    describe("reset") {
+      it("should reset all state variables to their prestine values") {
+        val schedule = genSchedule[Int]()
+
+        def testPrestine(): Unit = {
+          schedule.time   shouldEqual Schedule.BeforeSimulation
+          schedule.step   shouldEqual 0
+          schedule.length shouldEqual 0
+        }
+
+        testPrestine()
+
+        schedule.time = 75.0
+        schedule.step = 50
+        (0 until 10) foreach { i =>
+          schedule.once(new NoOp[Int], 100.0, DefaultGroup)
+        }
+        schedule.length shouldEqual 10
+
+        schedule.reset()
+        testPrestine()
+      }
+    }
+
+    describe("dequeueAll") {
+      it("should remove and return all events from the queue in order") {
+        val schedule = genSchedule[ListBuffer[(Double, Int)]]()
+
+        for(time <- List(1.0, 5.0, 100.0, 33.0); group <- List(5, 3, 1, 2)) {
+          schedule.once(new NoOp[ListBuffer[(Double, Int)]], time, group)
+        }
+
+        val result = schedule.dequeueAll().map { event =>
+          event.time -> event.group
+        }.toList
+
+        result shouldEqual result.sorted
+      }
+    }
+
+    describe("merge") {
+      it("should add events from the argument schedule to the called one") {
+        val itemsA = (0 until 10) map { _ => rng.nextDouble -> rng.nextInt }
+        val itemsB = (0 until 5) map { _ => rng.nextDouble -> rng.nextInt }
+
+        val scheduleA = genSchedule[ListBuffer[(Double, Int)]]()
+        val scheduleB = genSchedule[ListBuffer[(Double, Int)]]()
+
+        itemsA foreach { case (t, g) =>
+          scheduleA.once(t, g) { (e, s) => e.append(t -> g) }
+        }
+        itemsB foreach { case (t, g) =>
+          scheduleB.once(t, g) { (e, s) => e.append(t -> g) }
+        }
+
+        scheduleA.length shouldEqual 10
+        scheduleB.length shouldEqual 5
+
+        scheduleA.merge(scheduleB)
+        scheduleA.length shouldEqual 15
+        scheduleB.length shouldEqual 5
+
+        val env = ListBuffer.empty[(Double, Int)]
+        scheduleA.runUntilExhausted(env)
+        env shouldEqual (itemsA ++ itemsB).sorted
+      }
+
+      it("should raise an IllegalArgumentExcept if merging events from past") {
+        val scheduleA = genSchedule[Int]()
+        val scheduleB = genSchedule[Int]()
+
+        scheduleA.time = 5.0
+        scheduleB.once(new NoOp[Int], 1.0, DefaultGroup)
+
+        an [IllegalArgumentException] should be thrownBy {
+          scheduleA.merge(scheduleB)
+        }
+      }
+    }
+
+    it ("should have an human-readable toString for debugging purposes") {
+      val examples = List(
+        // Time, Step, Activities, Expected String
+        (
+          BeforeSimulation, 0L, List.empty[NoOp[Int]],
+          "Schedule at time=BeforeSimulation, step=0 with no queued activities"
+        ),(
+          Epoch, 0L, List.empty[NoOp[Int]],
+          "Schedule at time=Epoch, step=0 with no queued activities"
+        ),(
+          AfterSimulation, 0L, List.empty[NoOp[Int]],
+          "Schedule at time=AfterSimulation, step=0 with no queued activities"
+        ),(
+          Epoch, 0L, List(new NoOp[Int]),
+          "Schedule at time=Epoch, step=0 with one queued activity"
+        ),(
+          Epoch, 1L, List(new NoOp[Int], new NoOp[Int]),
+          "Schedule at time=Epoch, step=1 with 2 queued activities"
+        ),(
+          1.0, 1L, List.empty[NoOp[Int]],
+          "Schedule at time=1.0, step=1 with no queued activities [Exhausted]"
+        )
+      )
+
+      val schedule = genSchedule[Int]()
+      for((time, step, activities, expectation) <- examples) {
+        schedule.reset()
+        schedule.time = time
+        schedule.step = step
+        activities foreach { schedule.once(_, time, DefaultGroup) }
+        schedule.toString() shouldEqual expectation
+      }
+    }
+
+    describe("run family") {
+      it("should set the time to Epoch if never ran before") {
+        val (env, schedule) = genListBufferBasedEnvAndSchedule[Int]()
+        schedule.once(0.0, DefaultGroup) { (e, s) =>
+          s.time shouldEqual Epoch
+        }
+        schedule.runUntilExhausted(env)
+      }
+
+      it("should raise an IllegalArgumentException if run when exhausted") {
+        val (env, schedule) = genListBufferBasedEnvAndSchedule[Int]()
+
+        schedule.onceIn(new NoOp[ListBuffer[Int]], 1.0, 0)
+        schedule.runUntilExhausted(env)
+
+        an [IllegalArgumentException] should be thrownBy {
+          schedule.runUntilExhausted(env)
+        }
+      }
+    }
+
+    describe("runNSteps") {
+      it("should terminate after nSteps even if not exhausted") {
+        val (env, schedule) = genListBufferBasedEnvAndSchedule[Int]()
+
+        (1 to 100) foreach { delta =>
+          schedule.onceIn(new NoOp[ListBuffer[Int]], delta.toDouble, 0)
+        }
+
+        schedule.runNSteps(env, 7)
+        schedule.step shouldEqual 7
+      }
+    }
+
+    describe("runOneStep") {
+      it("should shuffle events with equal times and orderings") {
+        val items = (0 until 100) map { i => (i, 0.0, DefaultGroup) }
+
+        // First run.
+        val (envA, scheduleA) = genListBufferBasedEnvAndSchedule[Int]()
+        val seed = scheduleA.rng.nextInt()
+        scheduleA.rng.setSeed(seed)
+        items foreach { case (i, t, g) =>
+          scheduleA.once(t, g) { (env, s) => env.append(i) }
+        }
+        scheduleA.runUntilExhausted(envA)
+
+        // Second run with same seed.
+        val (envB, scheduleB) = genListBufferBasedEnvAndSchedule[Int]()
+        rng.setSeed(seed)
+        items foreach { case (i, t, g) =>
+          scheduleB.once(t, g) { (env, s) => env.append(i) }
+        }
+        scheduleB.runUntilExhausted(envB)
+        envA shouldEqual envB  // Same seed.
+
+        // Third run, rng not reseeded.
+        val (envC, scheduleC) = genListBufferBasedEnvAndSchedule[Int]()
+        items foreach { case (i, t, g) =>
+          scheduleC.once(t, g) { (env, s) => env.append(i) }
+        }
+        scheduleC.runUntilExhausted(envC)
+        envC shouldNot equal(envA)  // Different starting seed
+      }
+
+      it("should execute activities with the same time in group order") {
+        val (env, schedule) = genListBufferBasedEnvAndSchedule[(Int, Int)]()
+
+        schedule.once(1.0, 1) { (e, s) => e.append(1 -> 1) }
+        schedule.once(1.0, 0) { (e, s) => e.append(1 -> 0) }
+        schedule.once(1.0, 0) { (e, s) => e.append(1 -> 0) }
+        schedule.once(1.0, 2) { (e, s) => e.append(1 -> 2) }
+
+        schedule.runUntilExhausted(env)
+        env shouldEqual env.sorted
+        schedule.step shouldEqual 1
+      }
+    }
   }
 }
 

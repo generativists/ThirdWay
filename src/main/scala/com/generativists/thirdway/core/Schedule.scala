@@ -60,6 +60,7 @@ class Schedule[Env] (
   def reset() = {
     time = Schedule.BeforeSimulation
     step = 0
+    shufflerTmp.clear()
     queue.clear()
   }
 
