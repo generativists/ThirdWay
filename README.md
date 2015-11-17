@@ -5,6 +5,19 @@
 
 `ThirdWay` is a Scala library for building Agent-Based Models (ABMs). 
 
+
+## Using
+
+`ThirdWay` is on the Maven's Central Repository. Installation is as easy as adding:
+
+```
+libraryDependencies += "com.generativists" % "thirdway_2.11" % "0.0.1"
+```
+
+to your `build.sbt` file.
+
+I'll write a few tutorials and a user's manual as the library matures. 
+
 ## History
 
 It started off as a 
