@@ -1,7 +1,7 @@
 # ThirdWay
 
 [![Build Status](https://travis-ci.org/generativists/ThirdWay.svg?branch=master)](https://travis-ci.org/generativists/ThirdWay)
-[![Coverage Status](https://coveralls.io/repos/jbn/ThirdWay/badge.svg?branch=master&service=github)](https://coveralls.io/github/jbn/ThirdWay?branch=master)
+[![Coverage Status](https://coveralls.io/repos/generativists/ThirdWay/badge.svg?branch=master&service=github)](https://coveralls.io/github/generativists/ThirdWay?branch=master)
 
 `ThirdWay` is a Scala library for building Agent-Based Models (ABMs). 
 
