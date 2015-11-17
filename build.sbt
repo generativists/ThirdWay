@@ -2,7 +2,7 @@ name := "ThirdWay"
 
 organization := "com.generativists"
 
-version := "0.0.1-SNAPSHOT"
+version := "0.0.1"
 
 publishMavenStyle := true
 
