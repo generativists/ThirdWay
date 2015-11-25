@@ -83,13 +83,20 @@ class HexagonalSpec extends FunSpec with Matchers {
     describe("locations") {
       it("should return a hexagon around some origin") {
         val neighbors = new Hexagonal()
-        val result = neighbors.locations(3, 1, new MockGrid(10, 10))
 
-        result shouldEqual List(
+
+        neighbors.locations(3, 1, new MockGrid(10, 10)) shouldEqual List(
                   (3, 0),
           (2, 1),          (4, 1),
           (2, 2),          (4, 2),
                   (3, 2)
+        )
+
+        neighbors.locations(2, 1, new MockGrid(10, 10)) shouldEqual List(
+                   (2, 0),
+          (1, 0),          (3, 0),
+          (1, 1),          (3, 1),
+                   (2, 2)
         )
       }
     }
@@ -97,6 +104,7 @@ class HexagonalSpec extends FunSpec with Matchers {
     describe("english equivalent directions") {
       it("should describe hexagonal neighbors") {
         val neighbors = new Hexagonal()
+
         neighbors.locations(3, 1, new MockGrid(10, 10)) shouldEqual List(
           neighbors.north(3, 1),
           neighbors.northWest(3, 1), neighbors.northEast(3, 1),
