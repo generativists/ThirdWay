@@ -56,20 +56,20 @@ trait SimpleToroidalCoordinates[T] extends Grid[T] {
 trait RobustToroidalCoordinates[T] extends Grid[T] {
 
   override def tx(x: Int): Int = {
-    if(x >= 0) {
-      if(x < width) x else x % width
+    if(x >= 0 && x < width) {
+      x
     } else {
       val foldedX = x % width
-      if (foldedX < 0) foldedX + width else x
+      if (foldedX < 0) foldedX + width else foldedX
     }
   }
 
   override def ty(y: Int): Int = {
-    if(y >= 0) {
-      if(y < height) y else y % height
+    if(y >= 0 && y < height) {
+      y
     } else {
       val foldedY = y % height
-      if (foldedY < 0) foldedY + height else y
+      if (foldedY < 0) foldedY + height else foldedY
     }
   }
 
