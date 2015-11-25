@@ -3,10 +3,7 @@ package com.generativists.thirdway.fields.grid2d
 import org.scalatest.{FunSpec, Matchers}
 
 
-class MockGrid extends Grid[Int] {
-  val width: Int = 3
-  val height: Int = 3
-
+class MockGrid(val width:Int = 3, val height:Int = 3) extends Grid[Int] {
   override def update(x: Int, y: Int, value: Int): Unit = { }
 
   override def apply(x: Int, y: Int): Int = x + y
@@ -75,6 +72,36 @@ class BoundariesSpec extends FunSpec with Matchers {
           /*(-1, 1),*/ (0, 1),          (2, 1), // (3, 1)
                        (0, 2), (1,  2), (2, 2)
                            //  (1,  3)
+        )
+      }
+    }
+  }
+}
+
+class HexagonalSpec extends FunSpec with Matchers {
+  describe("Hexagonal") {
+    describe("locations") {
+      it("should return a hexagon around some origin") {
+        val neighbors = new Hexagonal()
+        val result = neighbors.locations(3, 1, new MockGrid(10, 10))
+
+        result shouldEqual List(
+                  (3, 0),
+          (2, 1),          (4, 1),
+          (2, 2),          (4, 2),
+                  (3, 2)
+        )
+      }
+    }
+
+    describe("english equivalent directions") {
+      it("should describe hexagonal neighbors") {
+        val neighbors = new Hexagonal()
+        neighbors.locations(3, 1, new MockGrid(10, 10)) shouldEqual List(
+          neighbors.north(3, 1),
+          neighbors.northWest(3, 1), neighbors.northEast(3, 1),
+          neighbors.southWest(3, 1), neighbors.southEast(3, 1),
+          neighbors.south(3, 1)
         )
       }
     }

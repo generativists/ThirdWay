@@ -64,3 +64,23 @@ trait Boundaries extends GridNeighbors {
     grid.isInBounds(point._1, point._2)
   }
 }
+
+/**
+  * @see http://www.redblobgames.com/grids/hexagons/
+  */
+class Hexagonal extends GridNeighbors {
+  def north(x: Int, y: Int)     = (x, y - 1)
+  def northWest(x: Int, y: Int) = (x - 1) -> (if (x % 2 == 0) y - 1 else y)
+  def northEast(x: Int, y: Int) = (x + 1) -> (if (x % 2 == 0) y - 1 else y)
+  def southWest(x: Int, y: Int) = (x - 1) -> (if (x % 2 == 0) y else y + 1)
+  def southEast(x: Int, y: Int) = (x + 1) -> (if (x % 2 == 0) y else y + 1)
+  def south(x: Int, y: Int)     = (x, y + 1)
+
+  def locations[T](x: Int, y: Int, grid: Grid[T]): Seq[(Int, Int)] = {
+    if (x % 2 == 0) {
+      Seq((x, y-1), (x-1, y-1), (x+1, y-1), (x-1, y), (x+1, y), (x, y+1))
+    } else {
+      Seq((x, y-1), (x-1, y), (x+1, y), (x-1, y+1), (x+1, y+1), (x, y+1))
+    }
+  }
+}
