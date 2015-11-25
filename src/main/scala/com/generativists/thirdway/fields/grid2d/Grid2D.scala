@@ -33,13 +33,6 @@ abstract class Grid[T:Manifest] extends Traversable[((Int,Int),T)]{
   * don't think I've ever seen a simulation that needs translations a fill
   * width or height off the array. For the overwhelming majority of use cases,
   * this is the appropriate trait.
-  *
-  * @note I coded the domain in `isInBounds` as an elidable requirement. Most
-  *       simulations can prove compliance. For example, all accesses go
-  *       through `Neighbors` which has a distance less than both the width
-  *       and height. Neither `tx` nor `ty` do domain checking. Violations to
-  *       the domain should fail loudly though. Inevitably, they should throw
-  *       an `ArrayIndexOutOfBoundsException`.
   */
 trait SimpleToroidalCoordinates[T] extends Grid[T] {
 
@@ -56,11 +49,7 @@ trait SimpleToroidalCoordinates[T] extends Grid[T] {
   }
 
   override def isInBounds(x: Int, y: Int): Boolean = {
-    require(
-      x >= -width && x < width * 2 && y >= -height && y < height * 2,
-      s"($x,$y) is out of the domain given by ($width, $height)"
-    )
-    true
+    x >= -width && x < width * 2 && y >= -height && y < height * 2
   }
 }
 

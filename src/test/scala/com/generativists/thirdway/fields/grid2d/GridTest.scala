@@ -3,7 +3,7 @@ package com.generativists.thirdway.fields.grid2d
 import org.scalatest.{FunSpec, Matchers}
 
 
-class GridTest extends FunSpec with Matchers {
+class GridSpec extends FunSpec with Matchers {
   val grid = new Grid[Int] {
     val width: Int = 10
     val height: Int = 20
@@ -34,7 +34,7 @@ class GridTest extends FunSpec with Matchers {
 }
 
 
-class DenseGridTest extends FunSpec with Matchers {
+class DenseGridSpec extends FunSpec with Matchers {
   describe("DenseGrid") {
     it("should allow for updating and retrieving cell values") {
       val grid = new DenseGrid[Boolean](5, 3, false)
@@ -54,3 +54,36 @@ class DenseGridTest extends FunSpec with Matchers {
   }
 }
 
+class ToroidalCoordinatesSpec extends FunSpec with Matchers {
+  describe("SimpleToroidalCoordinates") {
+    describe("isInBounds") {
+      it("should be true if not more than one full dimension away") {
+        val grid = new DenseGrid(
+          3, 2, false
+        ) with SimpleToroidalCoordinates[Boolean]
+
+        List((-3, 0), (5, 0), (0, -2), (0, 3)) foreach {
+          case (x,y) => grid.isInBounds(x, y) shouldBe true
+        }
+
+        List((-4, 0), (6, 0), (0, -3), (0, 4)) foreach {
+          case (x,y) => grid.isInBounds(x, y) shouldBe false
+        }
+      }
+    }
+  }
+
+  describe("RobustToroidalCoordinates") {
+    describe("isInBounds") {
+      it("should always be true") {
+        val grid = new DenseGrid(
+          3, 2, false
+        ) with RobustToroidalCoordinates[Boolean]
+
+        grid.isInBounds(2,1) shouldBe true
+        grid.isInBounds(615, 1916) shouldBe true
+        grid.isInBounds(-42, -42) shouldBe true
+      }
+    }
+  }
+}
