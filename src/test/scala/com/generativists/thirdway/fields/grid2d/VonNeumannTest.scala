@@ -3,7 +3,7 @@ package com.generativists.thirdway.fields.grid2d
 import org.scalatest.{FunSpec, Matchers}
 
 
-class MockGrid extends Grid[Int] with WidthHeightBounding[Int] {
+class MockGrid extends Grid[Int] {
   val width: Int = 3
   val height: Int = 3
 
