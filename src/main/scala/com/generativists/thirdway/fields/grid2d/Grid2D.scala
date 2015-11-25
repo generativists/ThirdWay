@@ -1,7 +1,7 @@
 package com.generativists.thirdway.fields.grid2d
 
 
-abstract class Grid[T:Manifest] {
+abstract class Grid[T:Manifest] extends Traversable[((Int,Int),T)]{
   val width: Int
   val height: Int
 
@@ -15,6 +15,15 @@ abstract class Grid[T:Manifest] {
 
   def tx(x: Int): Int = x
   def ty(y: Int): Int = y
+
+  def foreach[U](f: (((Int,Int),T)) => U): Unit = {
+    for(
+      y <- Range(0, height);
+      x <- Range(0, width)
+    ) {
+      f((x,y) -> this(x,y))
+    }
+  }
 }
 
 /** Endows a Grid with a toroidal surface.
@@ -78,18 +87,24 @@ trait RobustToroidalCoordinates[T] extends Grid[T] {
   override def isInBounds(x: Int, y: Int) = true
 }
 
-class DenseGrid2D[T:Manifest](
+class DenseGrid[T:Manifest](
   val width: Int,
   val height: Int,
-  val initialValue: T
+  initializer: => T
 ) extends Grid[T] {
 
-  protected val cells = Array.fill(height, width) { initialValue }
+  protected val cells = Array.fill(height, width) { initializer }
 
-  def apply(x: Int, y: Int) = cells(tx(x))(ty(y))
+  def apply(x: Int, y: Int) = cells(ty(y))(tx(x))
 
-  def update(x: Int, y: Int, value: T) = cells(tx(x))(ty(y)) = value
-  
+  def update(x: Int, y: Int, value: T) = cells(ty(y))(tx(x)) = value
+
+}
+
+object DenseGrid {
+  def apply[T:Manifest](width: Int, height: Int)(elem: => T): DenseGrid[T] = {
+    new DenseGrid[T](width, height, elem)
+  }
 }
 
 
