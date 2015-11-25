@@ -84,3 +84,15 @@ class Hexagonal extends GridNeighbors {
     }
   }
 }
+
+class Triangular extends GridNeighbors {
+  def baseOnBottom(x: Int, y: Int) = (x + y) % 2 == 1
+
+  def locations[T](x: Int, y: Int, grid: Grid[T]): Seq[(Int, Int)] = {
+    if (baseOnBottom(x,y)) {
+      Seq((x-1, y), (x+1, y), (x, y+1))  // Base on bottom
+    } else {
+      Seq((x, y-1), (x-1, y), (x+1, y))  // Base on top
+    }
+  }
+}

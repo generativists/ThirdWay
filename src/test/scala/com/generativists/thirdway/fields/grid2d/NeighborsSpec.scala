@@ -107,3 +107,22 @@ class HexagonalSpec extends FunSpec with Matchers {
     }
   }
 }
+
+class TriangularSpec extends FunSpec with Matchers {
+  describe("Triangular") {
+    describe("locations") {
+      it("should return a triangle around some origin") {
+        val neighbors = new Triangular()
+        val result = neighbors.locations(2, 1, new MockGrid())
+
+        neighbors.locations(2, 1, new MockGrid()) shouldEqual List(
+          (1, 1), (3, 1), (2, 2)
+        )
+
+        neighbors.locations(3, 3, new MockGrid(5, 5)) shouldEqual List(
+          (3, 2), (2, 3), (4, 3)
+        )
+      }
+    }
+  }
+}
