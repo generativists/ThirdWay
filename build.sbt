@@ -16,7 +16,7 @@ publishTo := {
 
 publishArtifact in Test := false
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.10.6"  // 2.10.X is spark-ready.
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
@@ -34,10 +34,8 @@ scalacOptions ++= Seq(
   "-Xlint",
   "-Yno-adapted-args",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen",
   "-Ywarn-value-discard",
-  "-Xfuture",
-  "-Ywarn-unused-import"
+  "-Xfuture"
 )
 
 pomExtra := (
