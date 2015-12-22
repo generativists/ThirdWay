@@ -1,7 +1,8 @@
 package com.generativists.thirdway.fields.grid2d
 
 
-abstract class Grid[T:Manifest] extends Traversable[((Int,Int),T)]{
+abstract class Grid[T:Manifest]
+    extends Traversable[((Int,Int),T)] with Serializable {
   val width: Int
   val height: Int
 

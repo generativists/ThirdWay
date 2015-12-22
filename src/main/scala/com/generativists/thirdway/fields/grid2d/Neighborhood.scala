@@ -2,7 +2,7 @@ package com.generativists.thirdway.fields.grid2d
 
 
 /** Defines a neighborhood over a 2D Grid given an origin.*/
-abstract class GridNeighbors {
+abstract class GridNeighbors extends Serializable {
 
   /** @return the neighbors' locations as a pair of Ints
     */
